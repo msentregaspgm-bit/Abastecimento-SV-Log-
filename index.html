@@ -30,7 +30,7 @@
 
 <div id="dashboard" style="display:none">
     
-    <div class="section-title">Resumo por Tipo Operação (Médias)</div>
+    <div class="section-title">Resumo por Tipo Operação (Totais)</div>
     <div id="resumoOp" class="top-list"></div>
 
     <div class="section-title">Custo e Performance Geral</div>
@@ -50,8 +50,9 @@
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxTgzv13ehfvtwjLJeS6v8HoAb2nWU9caJ0dUE7A267QZVXnKlcw4oFAbn6EN6T-kuq9Q/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwvsszGBJv1oaR4jZBSSWFnMVZpRk1Y7VNO5J7k-2XWgcD-es59r5975d1iHhEHpNnRDg/exec";
 
+    // Funções de formatação BR
     const fmtNum = (n) => n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const fmtMoeda = (n) => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
@@ -84,15 +85,15 @@
             document.getElementById('postoBarato').innerText = `${analisePostos[0].nome} (${fmtMoeda(analisePostos[0].media)})`;
             document.getElementById('postoCaro').innerText = `${analisePostos[analisePostos.length-1].nome} (${fmtMoeda(analisePostos[analisePostos.length-1].media)})`;
 
-            // 4. RESUMO OPERAÇÃO (Soma Coluna R / Quantidade de Linhas da OP)
+            // 4. RESUMO OPERAÇÃO (SOMA TOTAL LITROS E SOMA TOTAL VALOR)
             const tipos = [...new Set(dados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
                 const sub = dados.filter(d => d.tipoOp === t);
                 const litrosTotais = sub.reduce((a, b) => a + b.quantidade, 0);
-                const mediaGastoOp = sub.reduce((a, b) => a + b.valorAbast, 0) / sub.length;
+                const valorTotalOp = sub.reduce((a, b) => a + b.valorAbast, 0); // SOMA TOTAL DA COLUNA R
                 return `<div class="top-item">
                             <span>${t}</span>
-                            <span class="val">${fmtNum(litrosTotais)} L<br><small style="color:var(--green)">Média: ${fmtMoeda(mediaGastoOp)}</small></span>
+                            <span class="val">${fmtNum(litrosTotais)} L<br><small style="color:var(--green)">${fmtMoeda(valorTotalOp)}</small></span>
                         </div>`;
             }).join('');
 
