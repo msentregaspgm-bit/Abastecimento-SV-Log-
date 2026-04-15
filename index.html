@@ -3,132 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV Master - BI Abastecimento</title>
+    <title>SV MASTER - BI ABASTECIMENTO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        
-        .header { text-align: center; padding: 20px; background: var(--card); border-radius: 15px; border-bottom: 4px solid var(--yellow); margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 18px; color: white; text-transform: uppercase; }
-
-        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .kpi-card { background: var(--card); padding: 15px; border-radius: 12px; border-left: 4px solid var(--yellow); }
-        .kpi-card small { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        .kpi-card div { font-size: 18px; font-weight: bold; margin-top: 5px; color: white; }
-
-        .chart-box { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .chart-title { font-size: 12px; color: var(--yellow); margin-bottom: 15px; font-weight: bold; text-transform: uppercase; text-align: center; }
-
-        #loader { text-align: center; padding: 50px; color: var(--yellow); font-weight: bold; font-size: 14px; }
+        :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 13px; }
+        .header { text-align: center; padding: 15px; background: var(--card); border-bottom: 3px solid var(--yellow); border-radius: 10px; margin-bottom: 15px; }
+        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 11px; margin: 20px 0 10px 5px; border-left: 3px solid var(--yellow); padding-left: 10px; letter-spacing: 1px; }
+        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .kpi-card { background: var(--card); padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .kpi-card small { font-size: 9px; color: #888; text-transform: uppercase; display: block; }
+        .kpi-card div { font-size: 16px; font-weight: bold; margin-top: 4px; }
+        .top-list { background: var(--card); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
+        .top-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; align-items: center; }
+        .top-item:last-child { border: none; }
+        .val { font-weight: bold; color: var(--yellow); text-align: right; }
+        .chart-box { background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        #loader { text-align:center; padding:50px; color:var(--yellow); font-weight:bold; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>BI Abastecimento SV LOG</h1>
-</div>
+<div class="header"><h1>BI ABASTECIMENTO SV LOG</h1></div>
 
-<div id="loader">PROCESSANDO DADOS DA PLANILHA...</div>
+<div id="loader">ATUALIZANDO INDICADORES...</div>
 
 <div id="dashboard" style="display:none">
+    
+    <div class="section-title">Resumo por Tipo Operação</div>
+    <div id="resumoOp" class="top-list"></div>
+
+    <div class="section-title">Indicadores de Preço e Média</div>
     <div class="kpi-grid">
-        <div class="kpi-card">
-            <small>Investimento Total</small>
-            <div id="totalGasto" style="color: var(--yellow);">R$ 0,00</div>
-        </div>
-        <div class="kpi-card">
-            <small>Volume (Litros)</small>
-            <div id="totalLitros">0 L</div>
-        </div>
-        <div class="kpi-card">
-            <small>KM Rodado Total</small>
-            <div id="totalKm">0 KM</div>
-        </div>
-        <div class="kpi-card">
-            <small>Média KM/L Global</small>
-            <div id="mediaGlobal" style="color: var(--green);">0.00</div>
-        </div>
+        <div class="kpi-card"><small>Média Geral Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00</div></div>
+        <div class="kpi-card"><small>Valor Litro Médio</small><div id="valorLitroMedio">R$ 0,00</div></div>
+        <div class="kpi-card"><small>Fornecedor Econômico</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
+        <div class="kpi-card"><small>Fornecedor Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
     </div>
 
-    <div class="chart-box">
-        <div class="chart-title">Consumo de Litros por Frota</div>
-        <canvas id="chartL"></canvas>
-    </div>
+    <div class="section-title">Top 5 Fornecedores (Frequência)</div>
+    <div id="topFornecedores" class="top-list"></div>
 
+    <div class="section-title">Performance Motoristas (Melhores)</div>
+    <div id="topMotoMelhores" class="top-list"></div>
+
+    <div class="section-title">Performance Motoristas (Menores)</div>
+    <div id="topMotoPiores" class="top-list"></div>
+
+    <div class="section-title">Comparativo de Eficiência</div>
     <div class="chart-box">
-        <div class="chart-title">Ranking de Média KM/L</div>
-        <canvas id="chartM"></canvas>
+        <canvas id="chartEfic"></canvas>
     </div>
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycby9I8kmuPelvFpKt6ccIHO7H0A6T1f5TJbDgCvJ3HNiHwvejclj61T6SmKbYjiGFPlvPQ/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyx00oTL9qJ0_ssO3TtmZtO_F4zB8g6tq4-i2xTmBtEbSIxBQD_iNKdUtHkJGvyiZlD_A/exec";
 
-    async function initBI() {
+    async function init() {
         try {
             const res = await fetch(URL_SCRIPT);
             const dados = await res.json();
             
-            // Cálculos
-            const totalL = dados.reduce((a, b) => a + b.quantidade, 0);
-            const totalR = dados.reduce((a, b) => a + b.totalGasto, 0);
-            const totalK = dados.reduce((a, b) => a + b.kmRodado, 0);
-            const mediaG = totalK / totalL;
+            // 1. Médias Globais
+            const totalLitros = dados.reduce((a, b) => a + b.quantidade, 0);
+            const totalKm = dados.reduce((a, b) => a + b.kmRodado, 0);
+            const valorMedioLitro = dados.reduce((a, b) => a + b.valorUnit, 0) / dados.length;
+            document.getElementById('mediaGlobal').innerText = (totalKm / totalLitros).toFixed(2) + " KM/L";
+            document.getElementById('valorLitroMedio').innerText = valorMedioLitro.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // Update UI
-            document.getElementById('totalLitros').innerText = totalL.toLocaleString('pt-BR') + " L";
-            document.getElementById('totalGasto').innerText = totalR.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-            document.getElementById('totalKm').innerText = totalK.toLocaleString('pt-BR') + " KM";
-            document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2) + " KM/L";
+            // 2. Posto Mais Caro e Barato
+            const postosUnicos = [...new Set(dados.map(d => d.fornecedor))];
+            const mediasPostos = postosUnicos.map(p => {
+                const compras = dados.filter(d => d.fornecedor === p);
+                return { nome: p, preco: compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length };
+            }).sort((a,b) => a.preco - b.preco);
+            document.getElementById('postoBarato').innerText = mediasPostos[0].nome + " (" + mediasPostos[0].preco.toFixed(2) + ")";
+            document.getElementById('postoCaro').innerText = mediasPostos[mediasPostos.length - 1].nome + " (" + mediasPostos[mediasPostos.length - 1].preco.toFixed(2) + ")";
 
-            // Processar Gráficos por Frota
-            const frotasUnicas = [...new Set(dados.map(d => d.frota))];
-            
-            const litrosFrota = frotasUnicas.map(f => {
-                return dados.filter(d => d.frota === f).reduce((a, b) => a + b.quantidade, 0);
-            });
+            // 3. Top 5 Fornecedores
+            const contagemPostos = {};
+            dados.forEach(d => contagemPostos[d.fornecedor] = (contagemPostos[d.fornecedor] || 0) + 1);
+            const topPostos = Object.entries(contagemPostos).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            renderList('topFornecedores', topPostos, " Abast.");
 
-            const mediaFrota = frotasUnicas.map(f => {
-                const sub = dados.filter(d => d.frota === f);
+            // 4. Motoristas (Melhores e Piores Médias)
+            const motoristasUnicos = [...new Set(dados.map(d => d.motorista))];
+            const perfMotorista = motoristasUnicos.map(m => {
+                const d = dados.filter(x => x.motorista === m);
+                const l = d.reduce((a, b) => a + b.quantidade, 0);
+                const k = d.reduce((a, b) => a + b.kmRodado, 0);
+                return { nome: m, media: l > 0 ? k/l : 0 };
+            }).filter(x => x.media > 0).sort((a,b) => b.media - a.media);
+
+            renderList('topMotoMelhores', perfMotorista.slice(0,5).map(x => [x.nome, x.media.toFixed(2)]), " KM/L");
+            renderList('topMotoPiores', [...perfMotorista].reverse().slice(0,5).map(x => [x.nome, x.media.toFixed(2)]), " KM/L");
+
+            // 5. Tipo OP (Média e VALOR TOTAL) - ATUALIZADO
+            const tiposOp = [...new Set(dados.map(d => d.tipoOp))];
+            const htmlOp = tiposOp.map(op => {
+                const sub = dados.filter(d => d.tipoOp === op);
+                const totalValorOp = sub.reduce((a, b) => a + b.totalGasto, 0); // SOMA DO VALOR TOTAL
                 const k = sub.reduce((a, b) => a + b.kmRodado, 0);
                 const l = sub.reduce((a, b) => a + b.quantidade, 0);
-                return (k / l).toFixed(2);
-            });
+                const mediaOp = l > 0 ? (k/l).toFixed(2) : "0.00";
+                
+                return `
+                <div class="top-item">
+                    <span>${op}</span>
+                    <span class="val">
+                        ${totalValorOp.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}<br>
+                        <small style="color:var(--green)">${mediaOp} km/l</small>
+                    </span>
+                </div>`;
+            }).join('');
+            document.getElementById('resumoOp').innerHTML = htmlOp;
 
-            render(frotasUnicas, litrosFrota, mediaFrota);
+            // 6. Gráfico
+            const topM = perfMotorista.slice(0,8);
+            renderChart(topM.map(x => x.nome), topM.map(x => x.media));
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-
-        } catch (e) {
-            document.getElementById('loader').innerText = "Erro ao carregar os indicadores.";
-        }
+        } catch (e) { document.getElementById('loader').innerText = "Erro nos dados."; }
     }
 
-    function render(labels, litros, medias) {
-        // Gráfico Litros
-        new Chart(document.getElementById('chartL'), {
+    function renderList(id, data, sufixo) {
+        document.getElementById(id).innerHTML = data.map(item => 
+            `<div class="top-item"><span>${item[0]}</span><span class="val">${item[1]}${sufixo}</span></div>`
+        ).join('');
+    }
+
+    function renderChart(labels, values) {
+        new Chart(document.getElementById('chartEfic'), {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{ label: 'Litros', data: litros, backgroundColor: '#FFD60A' }]
+                datasets: [{ label: 'km/l', data: values, backgroundColor: '#FFD60A' }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
-        });
-
-        // Gráfico Média
-        new Chart(document.getElementById('chartM'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'Média KM/L', data: medias, borderColor: '#25D366', tension: 0.3 }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                scales: {
+                    y: { 
+                        beginAtZero: false, 
+                        min: Math.min(...values) - 0.2, 
+                        grid: { color: 'rgba(255,255,255,0.05)' } 
+                    }
+                }
+            }
         });
     }
-
-    initBI();
+    init();
 </script>
 </body>
 </html>
