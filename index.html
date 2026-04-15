@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV LOG - GESTÃO S-10</title>
+    <title>SV LOG - GESTÃO COMPLETA</title>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; --blue: #4CC9FE; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 11px; }
-        .header { text-align: center; padding: 10px; background: var(--card); border-bottom: 2px solid var(--yellow); border-radius: 8px; margin-bottom: 10px; }
-        h1 { font-size: 14px; margin: 0; color: var(--yellow); }
+        .header { text-align: center; padding: 8px; background: var(--card); border-bottom: 2px solid var(--yellow); border-radius: 8px; margin-bottom: 10px; }
+        h1 { font-size: 13px; margin: 0; color: var(--yellow); text-transform: uppercase; }
         .filter-box { background: var(--card); padding: 8px; border-radius: 6px; margin-bottom: 10px; }
         select { background: #003566; color: white; border: 1px solid var(--yellow); padding: 6px; border-radius: 4px; width: 100%; }
         .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 9px; margin: 15px 0 5px 0; border-left: 3px solid var(--yellow); padding-left: 8px; }
-        .top-list { background: var(--card); border-radius: 6px; padding: 8px; margin-bottom: 10px; overflow-x: auto; }
+        .top-list { background: var(--card); border-radius: 6px; padding: 8px; margin-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; color: var(--blue); font-size: 8px; padding-bottom: 5px; border-bottom: 1px solid #333; }
         td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -25,51 +25,38 @@
 <body>
 
 <div class="header"><h1>SV LOG - DASHBOARD S-10</h1></div>
-
-<div class="filter-box">
-    <select id="mesFiltro" onchange="atualizarDashboard()">
-        <option value="TODOS">Filtrar Mês: Todos</option>
-    </select>
-</div>
-
-<div id="loader">CONECTANDO À PLANILHA...</div>
+<div class="filter-box"><select id="mesFiltro" onchange="atualizarDashboard()"><option value="TODOS">Todos os Meses</option></select></div>
+<div id="loader">SINCRONIZANDO...</div>
 
 <div id="dashboard" style="display:none">
     
-    <div class="section-title">Resumo por Grupo (Aba Frota Col. H)</div>
+    <div class="section-title">Resumo por Grupo (Ordenado por Média)</div>
     <div class="top-list">
         <table>
-            <thead>
-                <tr>
-                    <th>GRUPO</th>
-                    <th>LITROS</th>
-                    <th>VALOR</th>
-                    <th>MÉDIA</th>
-                </tr>
-            </thead>
+            <thead><tr><th>GRUPO</th><th>LITROS</th><th>VALOR</th><th>MÉDIA</th></tr></thead>
             <tbody id="corpoGrupo"></tbody>
         </table>
     </div>
 
-    <div class="section-title">KPIs Gerais (Média 0-3 KM/L)</div>
+    <div class="section-title">KPIs Gerais (Média 0-3)</div>
     <div class="kpi-grid">
         <div class="kpi-card"><small>Média Global</small><div id="mediaGlobal" style="color:var(--green)">0.00</div></div>
         <div class="kpi-card"><small>Custo Médio Litro</small><div id="valorLitroMedio">R$ 0,00</div></div>
-        <div class="kpi-card"><small>Posto Econômico</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
-        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
     </div>
 
-    <div class="section-title">Top 5 Motoristas (Performance)</div>
+    <div class="section-title">Melhores Motoristas</div>
     <div id="topMelhores" class="top-list"></div>
 
-    <div class="section-title">Uso de Fornecedores</div>
+    <div class="section-title">Piores Motoristas</div>
+    <div id="topPiores" class="top-list"></div>
+
+    <div class="section-title">Frequência Fornecedores</div>
     <div id="topFornecedores" class="top-list"></div>
 
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbw_NawPcJlPvR2KBELunrn0VjX6Kz-tMKFvx3hNOFxPo5eBy66dRot5E5IgmV9UT69e_g/exec"; // Certifique-se de que é a nova URL de implantação
-
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwxNtSb0Z2MZ9Asd6-FJYH95Vtlf87z4wtgwi2tOVXVkNFxh6YQrQvDJqJ8byxBp6ArXA/exec";
     let baseGlobal = [];
     const fmtN = (n) => n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const fmtM = (n) => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
@@ -77,79 +64,62 @@
     async function init() {
         try {
             const res = await fetch(URL_SCRIPT);
-            const rawData = await res.json();
-            
-            if (rawData.error) {
-                document.getElementById('loader').innerHTML = `<span style="color:red">ERRO: ${rawData.error}</span>`;
-                return;
-            }
-            
-            baseGlobal = rawData;
-            
-            const mesesUnicos = [...new Set(baseGlobal.map(d => {
+            baseGlobal = await res.json();
+            const meses = [...new Set(baseGlobal.map(d => {
                 const dt = new Date(d.data);
                 return `${dt.getMonth() + 1}/${dt.getFullYear()}`;
             }))].sort();
-            
             const select = document.getElementById('mesFiltro');
-            mesesUnicos.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m; opt.innerText = m;
-                select.appendChild(opt);
+            meses.forEach(m => {
+                const opt = document.createElement('option'); opt.value = m; opt.innerText = m; select.appendChild(opt);
             });
-
             atualizarDashboard();
-        } catch (e) { 
-            document.getElementById('loader').innerText = "Erro ao conectar. Verifique a URL e permissões do script."; 
-        }
+        } catch (e) { document.getElementById('loader').innerText = "Erro ao conectar."; }
     }
 
     function atualizarDashboard() {
         const mes = document.getElementById('mesFiltro').value;
         let filtrados = (mes === "TODOS") ? baseGlobal : baseGlobal.filter(d => {
-            const dt = new Date(d.data);
-            return `${dt.getMonth() + 1}/${dt.getFullYear()}` === mes;
+            const dt = new Date(d.data); return `${dt.getMonth() + 1}/${dt.getFullYear()}` === mes;
         });
 
         const sanitizados = filtrados.filter(d => d.mediaLinha > 0 && d.mediaLinha <= 3);
 
         // 1. KPIs
-        const custoLitro = filtrados.reduce((a,b) => a + b.valorUnit, 0) / filtrados.length;
-        document.getElementById('valorLitroMedio').innerText = fmtM(custoLitro || 0);
+        const custoLitro = filtrados.reduce((a,b) => a + b.valorUnit, 0) / (filtrados.length || 1);
+        document.getElementById('valorLitroMedio').innerText = fmtM(custoLitro);
         const mediaG = sanitizados.length > 0 ? (sanitizados.reduce((a,b) => a + b.mediaLinha, 0) / sanitizados.length) : 0;
         document.getElementById('mediaGlobal').innerText = fmtN(mediaG);
 
-        // 2. Tabela Grupos (Coluna H da Frota)
-        const grupos = [...new Set(filtrados.map(d => d.grupoOp))];
-        document.getElementById('corpoGrupo').innerHTML = grupos.map(g => {
+        // 2. Tabela Grupos (ORDENADO POR MÉDIA)
+        const gruposInfo = [...new Set(filtrados.map(d => d.grupoOp))].map(g => {
             const sub = filtrados.filter(d => d.grupoOp === g);
-            const litros = sub.reduce((a,b) => a + b.quantidade, 0);
-            const valor = sub.reduce((a,b) => a + b.valorAbast, 0);
             const subMed = sub.filter(d => d.mediaLinha > 0 && d.mediaLinha <= 3);
-            const media = subMed.length > 0 ? (subMed.reduce((a,b) => a + b.mediaLinha, 0) / subMed.length) : 0;
-            return `<tr><td>${g}</td><td>${fmtN(litros)}</td><td>${fmtM(valor)}</td><td style="color:var(--green)">${fmtN(media)}</td></tr>`;
-        }).join('');
+            return {
+                nome: g,
+                litros: sub.reduce((a,b) => a + b.quantidade, 0),
+                valor: sub.reduce((a,b) => a + b.valorAbast, 0),
+                media: subMed.length > 0 ? (subMed.reduce((a,b) => a + b.mediaLinha, 0) / subMed.length) : 0
+            };
+        }).sort((a,b) => b.media - a.media);
 
-        // 3. Postos
-        const pList = [...new Set(filtrados.map(d => d.fornecedor))].map(p => {
-            const s = filtrados.filter(x => x.fornecedor === p);
-            return { n: p, v: s.reduce((a,b) => a + b.valorUnit, 0) / s.length };
-        }).sort((a,b) => a.v - b.v);
-        if(pList.length) {
-            document.getElementById('postoBarato').innerText = `${pList[0].n} (${fmtM(pList[0].v)})`;
-            document.getElementById('postoCaro').innerText = `${pList[pList.length-1].n} (${fmtM(pList[pList.length-1].v)})`;
-        }
+        document.getElementById('corpoGrupo').innerHTML = gruposInfo.map(g => 
+            `<tr><td>${g.nome}</td><td>${fmtN(g.litros)}</td><td>${fmtM(g.valor)}</td><td style="color:var(--green)">${fmtN(g.media)}</td></tr>`
+        ).join('');
 
-        // 4. Rankings
-        const rankingM = [...new Set(sanitizados.map(d => d.motorista))].map(m => {
+        // 3. RANKINGS MOTORISTAS
+        const mDados = [...new Set(sanitizados.map(d => d.motorista))].map(m => {
             const s = sanitizados.filter(x => x.motorista === m);
             return { n: m, v: s.reduce((a,b) => a + b.mediaLinha, 0) / s.length };
-        }).sort((a,b) => b.v - a.v).slice(0,5);
-        document.getElementById('topMelhores').innerHTML = rankingM.map(x => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${x.n}</span><span class="val-main">${fmtN(x.v)}</span></div>`).join('');
+        }).sort((a,b) => b.v - a.v);
 
-        const rankingF = [...new Set(filtrados.map(d => d.fornecedor))].map(f => ({ n: f, c: filtrados.filter(x => x.fornecedor === f).length }))
+        document.getElementById('topMelhores').innerHTML = mDados.slice(0,5).map(x => `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${x.n}</span><span class="val-main">${fmtN(x.v)}</span></div>`).join('');
+        document.getElementById('topPiores').innerHTML = [...mDados].reverse().slice(0,5).map(x => `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${x.n}</span><span style="color:var(--red); font-weight:bold;">${fmtN(x.v)}</span></div>`).join('');
+
+        // 4. FORNECEDORES
+        const fDados = [...new Set(filtrados.map(d => d.fornecedor))].map(f => ({ n: f, c: filtrados.filter(x => x.fornecedor === f).length }))
             .sort((a,b) => b.c - a.c).slice(0,5);
-        document.getElementById('topFornecedores').innerHTML = rankingF.map(f => `<div style="display:flex;justify-content:space-between;padding:5px 0;"><span>${f.n}</span><span style="color:var(--blue)">${f.c} Abast.</span></div>`).join('');
+        document.getElementById('topFornecedores').innerHTML = fDados.map(f => `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${f.n}</span><span style="color:var(--blue)">${f.c} Abast.</span></div>`).join('');
 
         document.getElementById('loader').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
