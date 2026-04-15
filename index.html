@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV MASTER - BI INTEGRADO</title>
+    <title>SV MASTER BI</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 13px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
         .header { text-align: center; padding: 15px; background: var(--card); border-bottom: 3px solid var(--yellow); border-radius: 10px; margin-bottom: 15px; }
         .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 11px; margin: 20px 0 10px 5px; border-left: 3px solid var(--yellow); padding-left: 10px; }
         .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -17,25 +17,25 @@
         .top-list { background: var(--card); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
         .top-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; align-items: center; }
         .val { font-weight: bold; color: var(--yellow); text-align: right; }
-        .chart-box { background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 15px; min-height: 200px; }
+        .chart-box { background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
         #loader { text-align:center; padding:50px; color:var(--yellow); font-weight:bold; }
     </style>
 </head>
 <body>
 
 <div class="header"><h1>BI ABASTECIMENTO SV LOG</h1></div>
-<div id="loader">LENDO PLANILHA...</div>
+<div id="loader">CALCULANDO MÉDIAS...</div>
 
 <div id="dashboard" style="display:none">
-    <div class="section-title">Resumo por Tipo Operação</div>
+    <div class="section-title">Resumo Tipo Operação</div>
     <div id="resumoOp" class="top-list"></div>
 
-    <div class="section-title">Indicadores de Performance</div>
+    <div class="section-title">Performance Global</div>
     <div class="kpi-grid">
-        <div class="kpi-card"><small>Média Global Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00 KM/L</div></div>
+        <div class="kpi-card"><small>Média Geral Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00 KM/L</div></div>
         <div class="kpi-card"><small>Valor Litro Médio</small><div id="valorLitroMedio">R$ 0,00</div></div>
-        <div class="kpi-card"><small>Posto Econômico</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
-        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
+        <div class="kpi-card"><small>Fornecedor Econômico</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
+        <div class="kpi-card"><small>Fornecedor Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
     </div>
 
     <div class="section-title">Top 5 Fornecedores</div>
@@ -44,104 +44,89 @@
     <div class="section-title">Melhores Médias (Motoristas)</div>
     <div id="topMotoMelhores" class="top-list"></div>
 
-    <div class="section-title">Menores Médias (Motoristas)</div>
-    <div id="topMotoPiores" class="top-list"></div>
-
     <div class="section-title">Eficiência KM/L por Motorista</div>
     <div class="chart-box"><canvas id="chartEfic"></canvas></div>
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzjnZhhA6SWfiqpLAWZqKsU80UtuTZpWsiPVEamfSVCdwwpffGxIH8hpm9nqP5US72-DA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwRxpVGGPCyzwMivQdRQAMxyB6gSN598gGkXMAyddtLivsMVr9HprhmZjBuZLOMzj5jmQ/exec";
 
     async function init() {
         try {
             const res = await fetch(URL_SCRIPT);
             const dados = await res.json();
             
-            if (!dados || dados.length === 0) {
-                document.getElementById('loader').innerText = "Nenhum dado encontrado na aba 'abastecimento'.";
+            // FILTRO DE SEGURANÇA: Só aceita dados com KM e Litros maiores que zero
+            const dadosValidos = dados.filter(d => d.quantidade > 0 && d.kmRodado > 0);
+
+            if (dadosValidos.length === 0) {
+                document.getElementById('loader').innerText = "Dados insuficientes para calcular médias.";
                 return;
             }
 
-            // 1. Cálculos Globais (Protegidos)
-            const totalLitros = dados.reduce((a, b) => a + (b.quantidade || 0), 0);
-            const totalKm = dados.reduce((a, b) => a + (b.kmRodado || 0), 0);
-            const somaPrecos = dados.reduce((a, b) => a + (b.valorUnit || 0), 0);
-            const mediaG = totalLitros > 0 ? (totalKm / totalLitros) : 0;
-            const valorMedioL = dados.length > 0 ? (somaPrecos / dados.length) : 0;
+            // 1. Médias Globais
+            const totalLitros = dadosValidos.reduce((a, b) => a + b.quantidade, 0);
+            const totalKm = dadosValidos.reduce((a, b) => a + b.kmRodado, 0);
+            const somaPrecos = dadosValidos.reduce((a, b) => a + b.valorUnit, 0);
+            
+            const mediaG = totalKm / totalLitros;
+            const valorMedioL = somaPrecos / dadosValidos.length;
 
             document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2) + " KM/L";
             document.getElementById('valorLitroMedio').innerText = valorMedioL.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // 2. Análise de Postos
-            const postos = [...new Set(dados.map(d => d.fornecedor).filter(p => p))];
-            const analisePostos = postos.map(p => {
-                const compras = dados.filter(d => d.fornecedor === p);
-                const avg = compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length;
-                return { nome: p, preco: avg };
-            }).sort((a,b) => a.preco - b.preco);
-
-            if(analisePostos.length > 0) {
-                document.getElementById('postoBarato').innerText = analisePostos[0].nome + " (R$ " + analisePostos[0].preco.toFixed(2) + ")";
-                document.getElementById('postoCaro').innerText = analisePostos[analisePostos.length - 1].nome + " (R$ " + analisePostos[analisePostos.length - 1].preco.toFixed(2) + ")";
-            }
-
-            // 3. Resumo Operação
-            const tipos = [...new Set(dados.map(d => d.tipoOp))];
+            // 2. Resumo Tipo OP
+            const tipos = [...new Set(dadosValidos.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
-                const sub = dados.filter(d => d.tipoOp === t);
-                const valorTotal = sub.reduce((a, b) => a + b.totalGasto, 0);
+                const sub = dadosValidos.filter(d => d.tipoOp === t);
+                const valor = sub.reduce((a, b) => a + b.totalGasto, 0);
                 const k = sub.reduce((a, b) => a + b.kmRodado, 0);
                 const l = sub.reduce((a, b) => a + b.quantidade, 0);
-                const m = l > 0 ? (k/l).toFixed(2) : "0.00";
-                return `<div class="top-item"><span>${t}</span><span class="val">${valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${m} km/l</small></span></div>`;
+                return `<div class="top-item"><span>${t}</span><span class="val">${valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${(k/l).toFixed(2)} km/l</small></span></div>`;
             }).join('');
 
+            // 3. Postos
+            const postos = [...new Set(dadosValidos.map(d => d.fornecedor))];
+            const analisePostos = postos.map(p => {
+                const compras = dadosValidos.filter(d => d.fornecedor === p);
+                return { nome: p, preco: compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length };
+            }).sort((a,b) => a.preco - b.preco);
+
+            document.getElementById('postoBarato').innerText = analisePostos[0].nome + " (R$ " + analisePostos[0].preco.toFixed(2) + ")";
+            document.getElementById('postoCaro').innerText = analisePostos[analisePostos.length - 1].nome + " (R$ " + analisePostos[analisePostos.length - 1].preco.toFixed(2) + ")";
+
             // 4. Performance Motoristas
-            const motoristas = [...new Set(dados.map(d => d.motorista))];
+            const motoristas = [...new Set(dadosValidos.map(d => d.motorista))];
             const perf = motoristas.map(m => {
-                const sub = dados.filter(d => d.motorista === m);
+                const sub = dadosValidos.filter(d => d.motorista === m);
                 const k = sub.reduce((a, b) => a + b.kmRodado, 0);
                 const l = sub.reduce((a, b) => a + b.quantidade, 0);
-                return { nome: m, media: l > 0 ? k/l : 0 };
-            }).filter(x => x.media > 0).sort((a,b) => b.media - a.media);
+                return { nome: m, media: k/l };
+            }).sort((a,b) => b.media - a.media);
 
-            const renderTop = (id, data, reverse = false) => {
-                const list = reverse ? [...data].reverse().slice(0,5) : data.slice(0,5);
-                document.getElementById(id).innerHTML = list.map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)} KM/L</span></div>`).join('');
-            };
-            renderTop('topMotoMelhores', perf);
-            renderTop('topMotoPiores', perf, true);
+            document.getElementById('topMotoMelhores').innerHTML = perf.slice(0,5).map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)} KM/L</span></div>`).join('');
 
             // 5. Fornecedores
             const freq = {};
-            dados.forEach(d => { if(d.fornecedor) freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1 });
+            dadosValidos.forEach(d => freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1);
             const topPostos = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0,5);
             document.getElementById('topFornecedores').innerHTML = topPostos.map(p => `<div class="top-item"><span>${p[0]}</span><span class="val">${p[1]} Abast.</span></div>`).join('');
 
             // Gráfico
-            if(perf.length > 0) {
-                const ctx = document.getElementById('chartEfic');
-                const topChart = perf.slice(0,10);
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: topChart.map(x => x.nome),
-                        datasets: [{ label: 'KM/L', data: topChart.map(x => x.media), backgroundColor: '#FFD60A' }]
-                    },
-                    options: { 
-                        responsive: true,
-                        scales: { y: { beginAtZero: false, min: Math.min(...topChart.map(x => x.media)) * 0.9 } } 
-                    }
-                });
-            }
+            const topChart = perf.slice(0,8);
+            new Chart(document.getElementById('chartEfic'), {
+                type: 'bar',
+                data: {
+                    labels: topChart.map(x => x.nome),
+                    datasets: [{ label: 'KM/L', data: topChart.map(x => x.media), backgroundColor: '#FFD60A' }]
+                },
+                options: { scales: { y: { beginAtZero: false, min: Math.min(...topChart.map(x => x.media)) * 0.9, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
         } catch (e) { 
-            document.getElementById('loader').innerText = "Erro ao processar dados. Verifique a planilha."; 
-            console.error(e);
+            document.getElementById('loader').innerText = "Erro no processamento. Verifique se KM e Litros estão preenchidos na planilha.";
         }
     }
     init();
