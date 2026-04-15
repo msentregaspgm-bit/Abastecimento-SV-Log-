@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SV Master - BI Abastecimento</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        
+        .header { text-align: center; padding: 20px; background: var(--card); border-radius: 15px; border-bottom: 4px solid var(--yellow); margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 18px; color: white; text-transform: uppercase; }
+
+        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .kpi-card { background: var(--card); padding: 15px; border-radius: 12px; border-left: 4px solid var(--yellow); }
+        .kpi-card small { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .kpi-card div { font-size: 18px; font-weight: bold; margin-top: 5px; color: white; }
+
+        .chart-box { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .chart-title { font-size: 12px; color: var(--yellow); margin-bottom: 15px; font-weight: bold; text-transform: uppercase; text-align: center; }
+
+        #loader { text-align: center; padding: 50px; color: var(--yellow); font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>BI Abastecimento SV LOG</h1>
+</div>
+
+<div id="loader">PROCESSANDO DADOS DA PLANILHA...</div>
+
+<div id="dashboard" style="display:none">
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <small>Investimento Total</small>
+            <div id="totalGasto" style="color: var(--yellow);">R$ 0,00</div>
+        </div>
+        <div class="kpi-card">
+            <small>Volume (Litros)</small>
+            <div id="totalLitros">0 L</div>
+        </div>
+        <div class="kpi-card">
+            <small>KM Rodado Total</small>
+            <div id="totalKm">0 KM</div>
+        </div>
+        <div class="kpi-card">
+            <small>Média KM/L Global</small>
+            <div id="mediaGlobal" style="color: var(--green);">0.00</div>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">Consumo de Litros por Frota</div>
+        <canvas id="chartL"></canvas>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">Ranking de Média KM/L</div>
+        <canvas id="chartM"></canvas>
+    </div>
+</div>
+
+<script>
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycby9I8kmuPelvFpKt6ccIHO7H0A6T1f5TJbDgCvJ3HNiHwvejclj61T6SmKbYjiGFPlvPQ/exec";
+
+    async function initBI() {
+        try {
+            const res = await fetch(URL_SCRIPT);
+            const dados = await res.json();
+            
+            // Cálculos
+            const totalL = dados.reduce((a, b) => a + b.quantidade, 0);
+            const totalR = dados.reduce((a, b) => a + b.totalGasto, 0);
+            const totalK = dados.reduce((a, b) => a + b.kmRodado, 0);
+            const mediaG = totalK / totalL;
+
+            // Update UI
+            document.getElementById('totalLitros').innerText = totalL.toLocaleString('pt-BR') + " L";
+            document.getElementById('totalGasto').innerText = totalR.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+            document.getElementById('totalKm').innerText = totalK.toLocaleString('pt-BR') + " KM";
+            document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2) + " KM/L";
+
+            // Processar Gráficos por Frota
+            const frotasUnicas = [...new Set(dados.map(d => d.frota))];
+            
+            const litrosFrota = frotasUnicas.map(f => {
+                return dados.filter(d => d.frota === f).reduce((a, b) => a + b.quantidade, 0);
+            });
+
+            const mediaFrota = frotasUnicas.map(f => {
+                const sub = dados.filter(d => d.frota === f);
+                const k = sub.reduce((a, b) => a + b.kmRodado, 0);
+                const l = sub.reduce((a, b) => a + b.quantidade, 0);
+                return (k / l).toFixed(2);
+            });
+
+            render(frotasUnicas, litrosFrota, mediaFrota);
+
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+        } catch (e) {
+            document.getElementById('loader').innerText = "Erro ao carregar os indicadores.";
+        }
+    }
+
+    function render(labels, litros, medias) {
+        // Gráfico Litros
+        new Chart(document.getElementById('chartL'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Litros', data: litros, backgroundColor: '#FFD60A' }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        // Gráfico Média
+        new Chart(document.getElementById('chartM'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Média KM/L', data: medias, borderColor: '#25D366', tension: 0.3 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    initBI();
+</script>
+</body>
+</html>
