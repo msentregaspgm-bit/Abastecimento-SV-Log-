@@ -27,17 +27,14 @@
 <body>
 
 <div class="header"><h1>BI PERFORMANCE S-10</h1></div>
-<div id="loader">ATUALIZANDO...</div>
+<div id="loader">CARREGANDO...</div>
 
 <div id="dashboard" style="display:none">
     
     <div class="section-title">Resumo por Tipo Operação (Totais)</div>
     <div id="resumoOp" class="top-list"></div>
 
-    <div class="section-title">Frequência: Top 5 Fornecedores</div>
-    <div id="topFornecedores" class="top-list"></div>
-
-    <div class="section-title">Performance S-10 (Médias 0-3 km/l)</div>
+    <div class="section-title">Custo e Performance (Média 0-3 km/l)</div>
     <div class="kpi-grid">
         <div class="kpi-card"><small>Média Geral Sanitizada</small><div id="mediaGlobal" class="green-t">0.00</div></div>
         <div class="kpi-card"><small>Custo Médio Litro</small><div id="valorLitroMedio">R$ 0,00</div></div>
@@ -51,10 +48,13 @@
     <div class="section-title">Piores Motoristas</div>
     <div id="topPiores" class="top-list"></div>
 
+    <div class="section-title">Frequência: Top 5 Fornecedores Externos</div>
+    <div id="topFornecedores" class="top-list"></div>
+
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzVYxYz6B4YERMWKbnshiHqUJVisaRqbZcIMhY8U_eViwHGVATZHAcrK7_aDRLsjV8s/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwoI5XvYrJD5phGQKEz30czQvoS3uz5ZHsQQL0JRSPTLwBjzlBVI3mxI_WnQ0s25v0uzA/exec";
 
     const fmtNum = (n) => n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const fmtMoeda = (n) => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
@@ -65,19 +65,19 @@
             const todosOsDados = await res.json();
             
             if (todosOsDados.length === 0) {
-                document.getElementById('loader').innerText = "Sem dados.";
+                document.getElementById('loader').innerText = "Sem dados de DIESEL S-10.";
                 return;
             }
 
-            // Filtro de Saneamento (0 a 3 km/l)
-            const dadosMediaVailda = todosOsDados.filter(d => d.mediaLinha > 0 && d.mediaLinha <= 3);
+            // Filtro de Saneamento (KM/L entre 0 e 3)
+            const dadosMediaValida = todosOsDados.filter(d => d.mediaLinha > 0 && d.mediaLinha <= 3);
 
-            // 1. Custo Médio Litro
+            // 1. Custo Médio Litro (Soma Q / Total)
             const custoM = todosOsDados.reduce((a, b) => a + b.valorUnit, 0) / todosOsDados.length;
             document.getElementById('valorLitroMedio').innerText = fmtMoeda(custoM);
 
-            // 2. Média Global
-            const mediaG = dadosMediaVailda.length > 0 ? (dadosMediaVailda.reduce((a, b) => a + b.mediaLinha, 0) / dadosMediaVailda.length) : 0;
+            // 2. Média Global (Somente Válidos)
+            const mediaG = dadosMediaValida.length > 0 ? (dadosMediaValida.reduce((a, b) => a + b.mediaLinha, 0) / dadosMediaValida.length) : 0;
             document.getElementById('mediaGlobal').innerText = fmtNum(mediaG);
 
             // 3. Postos (Econômico vs Caro)
@@ -90,12 +90,7 @@
             document.getElementById('postoBarato').innerText = `${analisePostos[0].nome} (${fmtMoeda(analisePostos[0].media)})`;
             document.getElementById('postoCaro').innerText = `${analisePostos[analisePostos.length-1].nome} (${fmtMoeda(analisePostos[analisePostos.length-1].media)})`;
 
-            // 4. NOVO: TOP 5 FORNECEDORES POR FREQUÊNCIA
-            const topForn = [...analisePostos].sort((a,b) => b.total - a.total).slice(0,5);
-            document.getElementById('topFornecedores').innerHTML = topForn.map(f => 
-                `<div class="top-item"><span>${f.nome}</span><span class="val blue-t">${f.total} Abast.</span></div>`).join('');
-
-            // 5. Resumo Operação
+            // 4. Resumo Operação (Somas)
             const tipos = [...new Set(todosOsDados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
                 const sub = todosOsDados.filter(d => d.tipoOp === t);
@@ -104,10 +99,10 @@
                 return `<div class="top-item"><span>${t}</span><span class="val">${fmtNum(litros)} L<br><small style="color:var(--green)">${fmtMoeda(valor)}</small></span></div>`;
             }).join('');
 
-            // 6. Rankings Motoristas
-            const mot = [...new Set(dadosMediaVailda.map(d => d.motorista))];
+            // 5. Rankings Motoristas
+            const mot = [...new Set(dadosMediaValida.map(d => d.motorista))];
             const perf = mot.map(m => {
-                const sub = dadosMediaVailda.filter(x => x.motorista === m);
+                const sub = dadosMediaValida.filter(x => x.motorista === m);
                 return { nome: m, media: sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length };
             }).sort((a,b) => b.media - a.media);
 
@@ -116,9 +111,14 @@
             document.getElementById('topPiores').innerHTML = [...perf].reverse().slice(0,5).map(x => 
                 `<div class="top-item"><span>${x.nome}</span><span class="val red-t">${fmtNum(x.media)}</span></div>`).join('');
 
+            // 6. Top Fornecedores por Frequência (NO FINAL)
+            const topForn = [...analisePostos].sort((a,b) => b.total - a.total).slice(0,5);
+            document.getElementById('topFornecedores').innerHTML = topForn.map(f => 
+                `<div class="top-item"><span>${f.nome}</span><span class="val blue-t">${f.total} Abast.</span></div>`).join('');
+
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-        } catch (e) { document.getElementById('loader').innerText = "Erro ao carregar."; }
+        } catch (e) { document.getElementById('loader').innerText = "Erro ao processar dados."; }
     }
     init();
 </script>
