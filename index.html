@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV MASTER BI - MÉDIA COLUNA O</title>
+    <title>SV MASTER BI - DIESEL S-10</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
@@ -23,96 +23,101 @@
 </head>
 <body>
 
-<div class="header"><h1>BI ABASTECIMENTO (MÉDIA COLUNA O)</h1></div>
-<div id="loader">LENDO MÉDIAS DA PLANILHA...</div>
+<div class="header"><h1>BI DIESEL S-10 (MÉDIA REAL)</h1></div>
+<div id="loader">PROCESSANDO DIESEL S-10...</div>
 
 <div id="dashboard" style="display:none">
     <div class="section-title">Resumo por Operação</div>
     <div id="resumoOp" class="top-list"></div>
 
-    <div class="section-title">Indicadores de Performance</div>
+    <div class="section-title">KPIs de Performance</div>
     <div class="kpi-grid">
-        <div class="kpi-card"><small>Média Global (Coluna O)</small><div id="mediaGlobal" style="color:var(--green)">0.00 KM/L</div></div>
-        <div class="kpi-card"><small>Valor Litro Médio</small><div id="valorLitroMedio">R$ 0,00</div></div>
-        <div class="kpi-card"><small>Fornecedor Econômico</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
-        <div class="kpi-card"><small>Fornecedor Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
+        <div class="kpi-card"><small>Média Total Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00</div></div>
+        <div class="kpi-card"><small>Litro Médio</small><div id="valorLitroMedio">R$ 0,00</div></div>
+        <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
+        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
     </div>
 
     <div class="section-title">Top 5 Fornecedores</div>
     <div id="topFornecedores" class="top-list"></div>
 
-    <div class="section-title">Ranking Motoristas (KM/L Planilha)</div>
+    <div class="section-title">Top 5 Melhores Motoristas (Média)</div>
     <div id="topMotoMelhores" class="top-list"></div>
+
+    <div class="section-title">Top 5 Menores Motoristas (Média)</div>
+    <div id="topMotoPiores" class="top-list"></div>
 
     <div class="chart-box"><canvas id="chartEfic"></canvas></div>
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbw6UUhOX5JY2MwQ-zagrnD3GmT4uMXSbMMm9NLjXOgRJx54xHHZBqDhrFDuQE_ihD1VKA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwvUN-xVuGKyI8i7ttzsxzbTHLNwt9bRYF9iMI1K5VSblRw-NcQac1ew09GR7aH_dTe/exec";
 
     async function init() {
         try {
             const res = await fetch(URL_SCRIPT);
             const dados = await res.json();
             
-            // Filtra dados que possuam média preenchida na Coluna O
-            const dadosComMedia = dados.filter(d => d.mediaPlanilha > 0);
-
-            if (dadosComMedia.length === 0) {
-                document.getElementById('loader').innerText = "Nenhuma média encontrada na Coluna O da planilha.";
+            if (dados.length === 0) {
+                document.getElementById('loader').innerText = "Nenhum dado de DIESEL S-10 encontrado na Coluna O.";
                 return;
             }
 
-            // 1. Médias Globais baseadas na Coluna O
-            const somaMedias = dadosComMedia.reduce((a, b) => a + b.mediaPlanilha, 0);
-            const mediaGeral = somaMedias / dadosComMedia.length;
-            const somaPrecos = dadosComMedia.reduce((a, b) => a + b.valorUnit, 0);
-            
-            document.getElementById('mediaGlobal').innerText = mediaGeral.toFixed(2) + " KM/L";
-            document.getElementById('valorLitroMedio').innerText = (somaPrecos / dadosComMedia.length).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            // 1. MÉDIA GLOBAL (Soma das médias / Quantidade de abastecimentos)
+            const somaMediasTotal = dados.reduce((a, b) => a + b.mediaLinha, 0);
+            const mediaGlobal = somaMediasTotal / dados.length;
+            const somaPrecosL = dados.reduce((a, b) => a + b.valorUnit, 0);
 
-            // 2. Operações
-            const ops = [...new Set(dadosComMedia.map(d => d.tipoOp))];
+            document.getElementById('mediaGlobal').innerText = mediaGlobal.toFixed(2) + " KM/L";
+            document.getElementById('valorLitroMedio').innerText = (somaPrecosL / dados.length).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+
+            // 2. RESUMO POR OPERAÇÃO
+            const ops = [...new Set(dados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = ops.map(op => {
-                const sub = dadosComMedia.filter(d => d.tipoOp === op);
-                const valor = sub.reduce((a, b) => a + b.totalGasto, 0);
-                const mOp = sub.reduce((a, b) => a + b.mediaPlanilha, 0) / sub.length;
-                return `<div class="top-item"><span>${op}</span><span class="val">${valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${mOp.toFixed(2)} km/l</small></span></div>`;
+                const sub = dados.filter(d => d.tipoOp === op);
+                const valorOp = sub.reduce((a, b) => a + b.totalGasto, 0);
+                // Média da operação = soma das médias das linhas / qtd de abastecimentos daquela op
+                const mediaOp = sub.reduce((a, b) => a + b.mediaLinha, 0) / sub.length;
+                return `<div class="top-item"><span>${op}</span><span class="val">${valorOp.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${mediaOp.toFixed(2)} km/l</small></span></div>`;
             }).join('');
 
-            // 3. Postos
-            const postos = [...new Set(dadosComMedia.map(d => d.fornecedor))];
+            // 3. POSTOS
+            const postos = [...new Set(dados.map(d => d.fornecedor))];
             const analiseP = postos.map(p => {
-                const d = dadosComMedia.filter(x => x.fornecedor === p);
+                const d = dados.filter(x => x.fornecedor === p);
                 return { nome: p, preco: d.reduce((a,b) => a + b.valorUnit, 0) / d.length };
             }).sort((a,b) => a.preco - b.preco);
             document.getElementById('postoBarato').innerText = analiseP[0].nome + " (R$ " + analiseP[0].preco.toFixed(2) + ")";
             document.getElementById('postoCaro').innerText = analiseP[analiseP.length-1].nome + " (R$ " + analiseP[analiseP.length-1].preco.toFixed(2) + ")";
 
-            // 4. Ranking Motoristas (Puxando da Coluna O)
-            const mot = [...new Set(dadosComMedia.map(d => d.motorista))];
+            // 4. MOTORISTAS (Ranking baseado na média da coluna O)
+            const mot = [...new Set(dados.map(d => d.motorista))];
             const perf = mot.map(m => {
-                const sub = dadosComMedia.filter(x => x.motorista === m);
-                return { nome: m, media: sub.reduce((a,b) => a + b.mediaPlanilha, 0) / sub.length };
+                const sub = dados.filter(x => x.motorista === m);
+                // Média do motorista = soma das médias dele / abastecimentos dele
+                const mMed = sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length;
+                return { nome: m, media: mMed };
             }).sort((a,b) => b.media - a.media);
-            document.getElementById('topMotoMelhores').innerHTML = perf.slice(0,5).map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)}</span></div>`).join('');
 
-            // 5. Fornecedores
+            document.getElementById('topMotoMelhores').innerHTML = perf.slice(0,5).map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)}</span></div>`).join('');
+            document.getElementById('topMotoPiores').innerHTML = [...perf].reverse().slice(0,5).map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)}</span></div>`).join('');
+
+            // 5. FORNECEDORES
             const freq = {};
-            dadosComMedia.forEach(d => freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1);
+            dados.forEach(d => freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1);
             const topP = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0,5);
             document.getElementById('topFornecedores').innerHTML = topP.map(p => `<div class="top-item"><span>${p[0]}</span><span class="val">${p[1]} Abast.</span></div>`).join('');
 
             // Gráfico
             new Chart(document.getElementById('chartEfic'), {
                 type: 'bar',
-                data: { labels: perf.slice(0,8).map(x=>x.nome), datasets: [{ label: 'KM/L (Planilha)', data: perf.slice(0,8).map(x=>x.media), backgroundColor: '#FFD60A' }] },
+                data: { labels: perf.slice(0,8).map(x=>x.nome), datasets: [{ label: 'KM/L (Coluna O)', data: perf.slice(0,8).map(x=>x.media), backgroundColor: '#FFD60A' }] },
                 options: { scales: { y: { beginAtZero: false, min: Math.min(...perf.map(x=>x.media))*0.9 } } }
             });
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-        } catch (e) { document.getElementById('loader').innerText = "Erro ao ler médias da planilha. Verifique a Coluna O."; }
+        } catch (e) { document.getElementById('loader').innerText = "Erro ao processar as médias da Coluna O."; }
     }
     init();
 </script>
