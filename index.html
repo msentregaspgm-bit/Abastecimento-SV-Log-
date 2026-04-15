@@ -24,13 +24,13 @@
 </head>
 <body>
 
-<div class="header"><h1>SV LOG - DASHBOARD S-10</h1></div>
+<div class="header"><h1>BI ABASTECIMENTO</h1></div>
 <div class="filter-box"><select id="mesFiltro" onchange="atualizarDashboard()"><option value="TODOS">Todos os Meses</option></select></div>
 <div id="loader">SINCRONIZANDO...</div>
 
 <div id="dashboard" style="display:none">
     
-    <div class="section-title">Resumo por Grupo (Ordenado por Média)</div>
+    <div class="section-title">Resumo por Grupo</div>
     <div class="top-list">
         <table>
             <thead><tr><th>GRUPO</th><th>LITROS</th><th>VALOR</th><th>MÉDIA</th></tr></thead>
@@ -38,19 +38,19 @@
         </table>
     </div>
 
-    <div class="section-title">KPIs Gerais (Média 0-3)</div>
+    <div class="section-title">KPIs Gerais</div>
     <div class="kpi-grid">
         <div class="kpi-card"><small>Média Global</small><div id="mediaGlobal" style="color:var(--green)">0.00</div></div>
         <div class="kpi-card"><small>Custo Médio Litro</small><div id="valorLitroMedio">R$ 0,00</div></div>
     </div>
 
-    <div class="section-title">Melhores Motoristas</div>
+    <div class="section-title">Melhores Medias</div>
     <div id="topMelhores" class="top-list"></div>
 
-    <div class="section-title">Piores Motoristas</div>
+    <div class="section-title">Piores Medias</div>
     <div id="topPiores" class="top-list"></div>
 
-    <div class="section-title">Frequência Fornecedores</div>
+    <div class="section-title"> TOP 5Fornecedores</div>
     <div id="topFornecedores" class="top-list"></div>
 
 </div>
