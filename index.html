@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV MASTER - BI ABASTECIMENTO</title>
+    <title>SV MASTER - BI INTEGRADO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
@@ -16,66 +16,70 @@
         .kpi-card div { font-size: 16px; font-weight: bold; margin-top: 4px; }
         .top-list { background: var(--card); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
         .top-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; align-items: center; }
-        .top-item:last-child { border: none; }
         .val { font-weight: bold; color: var(--yellow); text-align: right; }
-        .chart-box { background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .chart-box { background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 15px; min-height: 200px; }
         #loader { text-align:center; padding:50px; color:var(--yellow); font-weight:bold; }
     </style>
 </head>
 <body>
 
 <div class="header"><h1>BI ABASTECIMENTO SV LOG</h1></div>
-<div id="loader">SINCRONIZANDO DADOS...</div>
+<div id="loader">LENDO PLANILHA...</div>
 
 <div id="dashboard" style="display:none">
     <div class="section-title">Resumo por Tipo Operação</div>
     <div id="resumoOp" class="top-list"></div>
 
-    <div class="section-title">Performance Global</div>
+    <div class="section-title">Indicadores de Performance</div>
     <div class="kpi-grid">
-        <div class="kpi-card"><small>Média Geral Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00 KM/L</div></div>
+        <div class="kpi-card"><small>Média Global Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00 KM/L</div></div>
         <div class="kpi-card"><small>Valor Litro Médio</small><div id="valorLitroMedio">R$ 0,00</div></div>
-        <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
+        <div class="kpi-card"><small>Posto Econômico</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
         <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
     </div>
 
-    <div class="section-title">Top 5 Fornecedores (Frequência)</div>
+    <div class="section-title">Top 5 Fornecedores</div>
     <div id="topFornecedores" class="top-list"></div>
 
-    <div class="section-title">Performance Motoristas (Melhores KM/L)</div>
+    <div class="section-title">Melhores Médias (Motoristas)</div>
     <div id="topMotoMelhores" class="top-list"></div>
 
-    <div class="section-title">Performance Motoristas (Menores KM/L)</div>
+    <div class="section-title">Menores Médias (Motoristas)</div>
     <div id="topMotoPiores" class="top-list"></div>
 
-    <div class="section-title">Comparativo de Eficiência</div>
+    <div class="section-title">Eficiência KM/L por Motorista</div>
     <div class="chart-box"><canvas id="chartEfic"></canvas></div>
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwUqXgqA260vQ6SP8vv9IMCnn4gaqF4cwF_lXvNQIQ9Ar_0DHDOUyotMh51nni1pIY0hw/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzjnZhhA6SWfiqpLAWZqKsU80UtuTZpWsiPVEamfSVCdwwpffGxIH8hpm9nqP5US72-DA/exec";
 
     async function init() {
         try {
             const res = await fetch(URL_SCRIPT);
             const dados = await res.json();
             
-            // 1. Cálculos Globais
-            const totalLitros = dados.reduce((a, b) => a + b.quantidade, 0);
-            const totalKm = dados.reduce((a, b) => a + b.kmRodado, 0);
-            const somaPrecos = dados.reduce((a, b) => a + b.valorUnit, 0);
-            
+            if (!dados || dados.length === 0) {
+                document.getElementById('loader').innerText = "Nenhum dado encontrado na aba 'abastecimento'.";
+                return;
+            }
+
+            // 1. Cálculos Globais (Protegidos)
+            const totalLitros = dados.reduce((a, b) => a + (b.quantidade || 0), 0);
+            const totalKm = dados.reduce((a, b) => a + (b.kmRodado || 0), 0);
+            const somaPrecos = dados.reduce((a, b) => a + (b.valorUnit || 0), 0);
             const mediaG = totalLitros > 0 ? (totalKm / totalLitros) : 0;
             const valorMedioL = dados.length > 0 ? (somaPrecos / dados.length) : 0;
 
             document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2) + " KM/L";
             document.getElementById('valorLitroMedio').innerText = valorMedioL.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // 2. Postos
-            const postos = [...new Set(dados.map(d => d.fornecedor))];
+            // 2. Análise de Postos
+            const postos = [...new Set(dados.map(d => d.fornecedor).filter(p => p))];
             const analisePostos = postos.map(p => {
                 const compras = dados.filter(d => d.fornecedor === p);
-                return { nome: p, preco: compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length };
+                const avg = compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length;
+                return { nome: p, preco: avg };
             }).sort((a,b) => a.preco - b.preco);
 
             if(analisePostos.length > 0) {
@@ -83,20 +87,20 @@
                 document.getElementById('postoCaro').innerText = analisePostos[analisePostos.length - 1].nome + " (R$ " + analisePostos[analisePostos.length - 1].preco.toFixed(2) + ")";
             }
 
-            // 3. Resumo Tipo OP
+            // 3. Resumo Operação
             const tipos = [...new Set(dados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
                 const sub = dados.filter(d => d.tipoOp === t);
-                const valor = sub.reduce((a, b) => a + b.totalGasto, 0);
-                const km = sub.reduce((a, b) => a + b.kmRodado, 0);
-                const li = sub.reduce((a, b) => a + b.quantidade, 0);
-                const media = li > 0 ? (km/li).toFixed(2) : "0.00";
-                return `<div class="top-item"><span>${t}</span><span class="val">${valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${media} km/l</small></span></div>`;
+                const valorTotal = sub.reduce((a, b) => a + b.totalGasto, 0);
+                const k = sub.reduce((a, b) => a + b.kmRodado, 0);
+                const l = sub.reduce((a, b) => a + b.quantidade, 0);
+                const m = l > 0 ? (k/l).toFixed(2) : "0.00";
+                return `<div class="top-item"><span>${t}</span><span class="val">${valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${m} km/l</small></span></div>`;
             }).join('');
 
             // 4. Performance Motoristas
-            const nomesMoto = [...new Set(dados.map(d => d.motorista))];
-            const perf = nomesMoto.map(m => {
+            const motoristas = [...new Set(dados.map(d => d.motorista))];
+            const perf = motoristas.map(m => {
                 const sub = dados.filter(d => d.motorista === m);
                 const k = sub.reduce((a, b) => a + b.kmRodado, 0);
                 const l = sub.reduce((a, b) => a + b.quantidade, 0);
@@ -104,33 +108,41 @@
             }).filter(x => x.media > 0).sort((a,b) => b.media - a.media);
 
             const renderTop = (id, data, reverse = false) => {
-                const finalData = reverse ? [...data].reverse().slice(0,5) : data.slice(0,5);
-                document.getElementById(id).innerHTML = finalData.map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)} KM/L</span></div>`).join('');
+                const list = reverse ? [...data].reverse().slice(0,5) : data.slice(0,5);
+                document.getElementById(id).innerHTML = list.map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)} KM/L</span></div>`).join('');
             };
             renderTop('topMotoMelhores', perf);
             renderTop('topMotoPiores', perf, true);
 
-            // 5. Fornecedores Frequência
+            // 5. Fornecedores
             const freq = {};
-            dados.forEach(d => freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1);
+            dados.forEach(d => { if(d.fornecedor) freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1 });
             const topPostos = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0,5);
             document.getElementById('topFornecedores').innerHTML = topPostos.map(p => `<div class="top-item"><span>${p[0]}</span><span class="val">${p[1]} Abast.</span></div>`).join('');
 
             // Gráfico
-            const ctx = document.getElementById('chartEfic');
-            const topChart = perf.slice(0,8);
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: topChart.map(x => x.nome),
-                    datasets: [{ label: 'KM/L', data: topChart.map(x => x.media), backgroundColor: '#FFD60A' }]
-                },
-                options: { scales: { y: { beginAtZero: false, min: Math.min(...topChart.map(x => x.media)) - 0.2, grid: { color: 'rgba(255,255,255,0.05)' } } } }
-            });
+            if(perf.length > 0) {
+                const ctx = document.getElementById('chartEfic');
+                const topChart = perf.slice(0,10);
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: topChart.map(x => x.nome),
+                        datasets: [{ label: 'KM/L', data: topChart.map(x => x.media), backgroundColor: '#FFD60A' }]
+                    },
+                    options: { 
+                        responsive: true,
+                        scales: { y: { beginAtZero: false, min: Math.min(...topChart.map(x => x.media)) * 0.9 } } 
+                    }
+                });
+            }
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-        } catch (e) { document.getElementById('loader').innerText = "Erro ao carregar dados."; }
+        } catch (e) { 
+            document.getElementById('loader').innerText = "Erro ao processar dados. Verifique a planilha."; 
+            console.error(e);
+        }
     }
     init();
 </script>
