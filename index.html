@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV LOG - BI S-10</title>
+    <title>SV LOG - PERFORMANCE S-10</title>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 11px; }
         .header { text-align: center; padding: 8px; background: var(--card); border-bottom: 2px solid var(--yellow); border-radius: 8px; margin-bottom: 10px; }
-        h1 { font-size: 14px; margin: 0; color: var(--yellow); text-transform: uppercase; }
-        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 9px; margin: 12px 0 4px 0; border-left: 3px solid var(--yellow); padding-left: 8px; }
+        h1 { font-size: 13px; margin: 0; color: var(--yellow); text-transform: uppercase; }
+        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 9px; margin: 10px 0 4px 0; border-left: 3px solid var(--yellow); padding-left: 8px; }
         .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .kpi-card { background: var(--card); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .kpi-card { background: var(--card); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
         .kpi-card small { font-size: 8px; color: #888; display: block; text-transform: uppercase; }
         .kpi-card div { font-size: 13px; font-weight: bold; margin-top: 2px; }
-        .top-list { background: var(--card); border-radius: 6px; padding: 4px 10px; margin-bottom: 10px; }
+        .top-list { background: var(--card); border-radius: 6px; padding: 4px 10px; margin-bottom: 8px; }
         .top-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .top-item:last-child { border-bottom: none; }
         .val { font-weight: bold; color: var(--yellow); }
-        #loader { text-align:center; padding:20px; color:var(--yellow); }
         .red-t { color: var(--red); }
         .green-t { color: var(--green); }
+        #loader { text-align:center; padding:30px; color:var(--yellow); }
     </style>
 </head>
 <body>
 
 <div class="header"><h1>BI PERFORMANCE S-10</h1></div>
-<div id="loader">PROCESSANDO DADOS...</div>
+<div id="loader">ATUALIZANDO...</div>
 
 <div id="dashboard" style="display:none">
     
-    <div class="section-title">Resumo por Tipo Operação</div>
+    <div class="section-title">Resumo por Operação</div>
     <div id="resumoOp" class="top-list"></div>
 
     <div class="section-title">Indicadores de Custo e Performance</div>
@@ -41,16 +41,16 @@
         <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" class="red-t" style="font-size:10px">---</div></div>
     </div>
 
-    <div class="section-title">Melhores Motoristas (Top 5)</div>
+    <div class="section-title">Melhores Motoristas (KM/L)</div>
     <div id="topMelhores" class="top-list"></div>
 
-    <div class="section-title">Piores Motoristas (Top 5)</div>
+    <div class="section-title">Piores Motoristas (KM/L)</div>
     <div id="topPiores" class="top-list"></div>
 
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbw-TUOtw6vhBC2gAdwUgdP8MyDs7fXtyaWmtKhEHE9DxvEY2BnxAVhjF3y-7hqw1xQlTA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzgvFr7AI0tODrgLfVx6FNg0ZlSvR2OmY3DgmO04pNuF8NZTmcZgC4H4-LfDX3MMAbqvQ/exec"; // SUBSTITUA PELA URL DA NOVA IMPLANTAÇÃO
 
     async function init() {
         try {
@@ -58,32 +58,32 @@
             const dados = await res.json();
             
             if (dados.length === 0) {
-                document.getElementById('loader').innerText = "Sem dados de DIESEL S-10.";
+                document.getElementById('loader').innerText = "Nenhum dado de DIESEL S-10 encontrado.";
                 return;
             }
 
-            // 1. CUSTO MÉDIO LITRO (Soma Valor Unit / Qtd de Abastecimentos)
-            const somaPrecosUnit = dados.reduce((a, b) => a + b.valorUnit, 0);
-            const custoMedioReal = somaPrecosUnit / dados.length;
-            document.getElementById('valorLitroMedio').innerText = custoMedioReal.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            // 1. CUSTO MÉDIO LITRO (Soma Valor Unit / Total de Abastecimentos)
+            const somaUnitario = dados.reduce((a, b) => a + b.valorUnit, 0);
+            const custoMedio = somaUnitario / dados.length;
+            document.getElementById('valorLitroMedio').innerText = custoMedio.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // 2. MÉDIA GLOBAL KM/L (Soma Médias Coluna O / Qtd Abastecimentos)
-            const dadosMedia = dados.filter(d => d.mediaLinha > 0);
-            const mediaGeral = dadosMedia.reduce((a, b) => a + b.mediaLinha, 0) / dadosMedia.length;
-            document.getElementById('mediaGlobal').innerText = mediaGeral.toFixed(2);
+            // 2. MÉDIA GLOBAL (Soma Média Coluna O / Total Abastecimentos)
+            const dadosComMedia = dados.filter(d => d.mediaLinha > 0);
+            const mediaG = dadosComMedia.reduce((a, b) => a + b.mediaLinha, 0) / dadosComMedia.length;
+            document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2);
 
-            // 3. POSTOS (Média de Preço por Posto)
+            // 3. POSTO BARATO E CARO (Média de cada posto)
             const nomesPostos = [...new Set(dados.map(d => d.fornecedor))];
             const rankingPostos = nomesPostos.map(p => {
-                const abastecimentosNoPosto = dados.filter(x => x.fornecedor === p);
-                const mediaPrecoPosto = abastecimentosNoPosto.reduce((a, b) => a + b.valorUnit, 0) / abastecimentosNoPosto.length;
-                return { nome: p, media: mediaPrecoPosto };
+                const abastecimentos = dados.filter(x => x.fornecedor === p);
+                const mediaP = abastecimentos.reduce((a, b) => a + b.valorUnit, 0) / abastecimentos.length;
+                return { nome: p, media: mediaP };
             }).sort((a,b) => a.media - b.media);
 
             document.getElementById('postoBarato').innerText = `${rankingPostos[0].nome} (R$ ${rankingPostos[0].media.toFixed(2)})`;
             document.getElementById('postoCaro').innerText = `${rankingPostos[rankingPostos.length-1].nome} (R$ ${rankingPostos[rankingPostos.length-1].media.toFixed(2)})`;
 
-            // 4. RESUMO OPERAÇÃO (Total Litros e Valor)
+            // 4. RESUMO OPERAÇÃO (Litros e Valor Total)
             const tipos = [...new Set(dados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
                 const sub = dados.filter(d => d.tipoOp === t);
@@ -92,11 +92,12 @@
                 return `<div class="top-item"><span>${t}</span><span class="val">${l.toFixed(0)}L | ${v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span></div>`;
             }).join('');
 
-            // 5. MOTORISTAS
-            const mot = [...new Set(dadosMedia.map(d => d.motorista))];
+            // 5. RANKINGS
+            const mot = [...new Set(dadosComMedia.map(d => d.motorista))];
             const perf = mot.map(m => {
-                const sub = dadosMedia.filter(x => x.motorista === m);
-                return { nome: m, media: sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length };
+                const sub = dadosComMedia.filter(x => x.motorista === m);
+                const med = sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length;
+                return { nome: m, media: med };
             }).sort((a,b) => b.media - a.media);
 
             document.getElementById('topMelhores').innerHTML = perf.slice(0,5).map(x => 
