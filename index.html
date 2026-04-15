@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV LOG - PERFORMANCE S-10</title>
+    <title>SV LOG - BI S-10</title>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 11px; }
@@ -15,25 +15,25 @@
         .kpi-card small { font-size: 8px; color: #888; display: block; text-transform: uppercase; }
         .kpi-card div { font-size: 13px; font-weight: bold; margin-top: 2px; }
         .top-list { background: var(--card); border-radius: 6px; padding: 4px 10px; margin-bottom: 8px; }
-        .top-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .top-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; }
         .top-item:last-child { border-bottom: none; }
-        .val { font-weight: bold; color: var(--yellow); }
+        .val { font-weight: bold; color: var(--yellow); text-align: right; line-height: 1.2; }
+        #loader { text-align:center; padding:30px; color:var(--yellow); }
         .red-t { color: var(--red); }
         .green-t { color: var(--green); }
-        #loader { text-align:center; padding:30px; color:var(--yellow); }
     </style>
 </head>
 <body>
 
 <div class="header"><h1>BI PERFORMANCE S-10</h1></div>
-<div id="loader">ATUALIZANDO...</div>
+<div id="loader">ATUALIZANDO DADOS...</div>
 
 <div id="dashboard" style="display:none">
     
-    <div class="section-title">Resumo por Tipo Operação</div>
+    <div class="section-title">Resumo por Tipo Operação (Médias)</div>
     <div id="resumoOp" class="top-list"></div>
 
-    <div class="section-title">Custo e Performance S-10</div>
+    <div class="section-title">Custo e Performance Geral</div>
     <div class="kpi-grid">
         <div class="kpi-card"><small>Média Geral (KM/L)</small><div id="mediaGlobal" class="green-t">0.00</div></div>
         <div class="kpi-card"><small>Custo Médio Litro</small><div id="valorLitroMedio">R$ 0,00</div></div>
@@ -50,7 +50,10 @@
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzec1SXK4CKMzaoAKFzGjefPAMA-obZj3x21CMxWnaDD1-Fgn8wbK7Zy5aV69vem0-gWA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxTgzv13ehfvtwjLJeS6v8HoAb2nWU9caJ0dUE7A267QZVXnKlcw4oFAbn6EN6T-kuq9Q/exec";
+
+    const fmtNum = (n) => n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const fmtMoeda = (n) => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
     async function init() {
         try {
@@ -58,37 +61,39 @@
             const dados = await res.json();
             
             if (dados.length === 0) {
-                document.getElementById('loader').innerText = "Sem dados de DIESEL S-10 na Coluna Q.";
+                document.getElementById('loader').innerText = "Sem dados de DIESEL S-10.";
                 return;
             }
 
-            // 1. CUSTO MÉDIO LITRO (Soma da Coluna Q ÷ Qtd de abastecimentos)
-            const custoMedio = dados.reduce((a, b) => a + b.valorUnit, 0) / dados.length;
-            document.getElementById('valorLitroMedio').innerText = custoMedio.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            // 1. CUSTO MÉDIO LITRO (Soma Coluna Q / Qtd)
+            const custoM = dados.reduce((a, b) => a + b.valorUnit, 0) / dados.length;
+            document.getElementById('valorLitroMedio').innerText = fmtMoeda(custoM);
 
-            // 2. MÉDIA GLOBAL (Média da Coluna O)
+            // 2. MÉDIA GLOBAL (Média Coluna O)
             const dadosMedia = dados.filter(d => d.mediaLinha > 0);
             const mediaG = dadosMedia.reduce((a, b) => a + b.mediaLinha, 0) / dadosMedia.length;
-            document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2);
+            document.getElementById('mediaGlobal').innerText = fmtNum(mediaG);
 
-            // 3. POSTOS (Média de cada posto baseado na soma da Coluna Q ÷ Frequência)
+            // 3. POSTOS (Média Coluna Q por Posto)
             const nomesPostos = [...new Set(dados.map(d => d.fornecedor))];
             const analisePostos = nomesPostos.map(p => {
-                const registros = dados.filter(x => x.fornecedor === p);
-                const mediaPreco = registros.reduce((a, b) => a + b.valorUnit, 0) / registros.length;
-                return { nome: p, media: mediaPreco };
+                const regs = dados.filter(x => x.fornecedor === p);
+                return { nome: p, media: regs.reduce((a, b) => a + b.valorUnit, 0) / regs.length };
             }).sort((a,b) => a.media - b.media);
 
-            document.getElementById('postoBarato').innerText = `${analisePostos[0].nome} (R$ ${analisePostos[0].media.toFixed(2)})`;
-            document.getElementById('postoCaro').innerText = `${analisePostos[analisePostos.length-1].nome} (R$ ${analisePostos[analisePostos.length-1].media.toFixed(2)})`;
+            document.getElementById('postoBarato').innerText = `${analisePostos[0].nome} (${fmtMoeda(analisePostos[0].media)})`;
+            document.getElementById('postoCaro').innerText = `${analisePostos[analisePostos.length-1].nome} (${fmtMoeda(analisePostos[analisePostos.length-1].media)})`;
 
-            // 4. RESUMO OPERAÇÃO
+            // 4. RESUMO OPERAÇÃO (Soma Coluna R / Quantidade de Linhas da OP)
             const tipos = [...new Set(dados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
                 const sub = dados.filter(d => d.tipoOp === t);
-                const l = sub.reduce((a, b) => a + b.quantidade, 0);
-                const v = sub.reduce((a, b) => a + b.totalGasto, 0);
-                return `<div class="top-item"><span>${t}</span><span class="val">${l.toFixed(0)}L | ${v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span></div>`;
+                const litrosTotais = sub.reduce((a, b) => a + b.quantidade, 0);
+                const mediaGastoOp = sub.reduce((a, b) => a + b.valorAbast, 0) / sub.length;
+                return `<div class="top-item">
+                            <span>${t}</span>
+                            <span class="val">${fmtNum(litrosTotais)} L<br><small style="color:var(--green)">Média: ${fmtMoeda(mediaGastoOp)}</small></span>
+                        </div>`;
             }).join('');
 
             // 5. MOTORISTAS
@@ -99,9 +104,9 @@
             }).sort((a,b) => b.media - a.media);
 
             document.getElementById('topMelhores').innerHTML = perf.slice(0,5).map(x => 
-                `<div class="top-item"><span>${x.nome}</span><span class="val green-t">${x.media.toFixed(2)}</span></div>`).join('');
+                `<div class="top-item"><span>${x.nome}</span><span class="val green-t">${fmtNum(x.media)}</span></div>`).join('');
             document.getElementById('topPiores').innerHTML = [...perf].reverse().slice(0,5).map(x => 
-                `<div class="top-item"><span>${x.nome}</span><span class="val red-t">${x.media.toFixed(2)}</span></div>`).join('');
+                `<div class="top-item"><span>${x.nome}</span><span class="val red-t">${fmtNum(x.media)}</span></div>`).join('');
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
