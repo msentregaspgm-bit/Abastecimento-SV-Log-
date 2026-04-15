@@ -25,46 +25,42 @@
 <body>
 
 <div class="header"><h1>BI ABASTECIMENTO SV LOG</h1></div>
-
-<div id="loader">CARREGANDO DADOS...</div>
+<div id="loader">SINCRONIZANDO DADOS...</div>
 
 <div id="dashboard" style="display:none">
-    
     <div class="section-title">Resumo por Tipo Operação</div>
     <div id="resumoOp" class="top-list"></div>
 
     <div class="section-title">Performance Global</div>
     <div class="kpi-grid">
-        <div class="kpi-card"><small>Média Geral Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00</div></div>
+        <div class="kpi-card"><small>Média Geral Frota</small><div id="mediaGlobal" style="color:var(--green)">0.00 KM/L</div></div>
         <div class="kpi-card"><small>Valor Litro Médio</small><div id="valorLitroMedio">R$ 0,00</div></div>
         <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
         <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
     </div>
 
-    <div class="section-title">Top 5 Fornecedores (Mais Abastecidos)</div>
+    <div class="section-title">Top 5 Fornecedores (Frequência)</div>
     <div id="topFornecedores" class="top-list"></div>
 
-    <div class="section-title">Melhores Motoristas (KM/L)</div>
+    <div class="section-title">Performance Motoristas (Melhores KM/L)</div>
     <div id="topMotoMelhores" class="top-list"></div>
 
-    <div class="section-title">Menores Motoristas (KM/L)</div>
+    <div class="section-title">Performance Motoristas (Menores KM/L)</div>
     <div id="topMotoPiores" class="top-list"></div>
 
-    <div class="section-title">Comparativo de Médias</div>
-    <div class="chart-box">
-        <canvas id="chartEfic"></canvas>
-    </div>
+    <div class="section-title">Comparativo de Eficiência</div>
+    <div class="chart-box"><canvas id="chartEfic"></canvas></div>
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbz5QpSYMJGEtmQnQ7RMAOLTJaLOkwj-u4MGtOJb6ItKeRwDwcQ_ltx8Rn8hvhjUxA4qsA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwUqXgqA260vQ6SP8vv9IMCnn4gaqF4cwF_lXvNQIQ9Ar_0DHDOUyotMh51nni1pIY0hw/exec";
 
     async function init() {
         try {
             const res = await fetch(URL_SCRIPT);
             const dados = await res.json();
             
-            // 1. Cálculos Globais (Com trava para evitar Infinity)
+            // 1. Cálculos Globais
             const totalLitros = dados.reduce((a, b) => a + b.quantidade, 0);
             const totalKm = dados.reduce((a, b) => a + b.kmRodado, 0);
             const somaPrecos = dados.reduce((a, b) => a + b.valorUnit, 0);
@@ -75,74 +71,66 @@
             document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2) + " KM/L";
             document.getElementById('valorLitroMedio').innerText = valorMedioL.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // 2. Posto Mais Caro e Barato
-            const postosUnicos = [...new Set(dados.map(d => d.fornecedor))];
-            if (postosUnicos.length > 0) {
-                const mediasPostos = postosUnicos.map(p => {
-                    const compras = dados.filter(d => d.fornecedor === p);
-                    return { nome: p, preco: compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length };
-                }).sort((a,b) => a.preco - b.preco);
-                document.getElementById('postoBarato').innerText = mediasPostos[0].nome + " (R$ " + mediasPostos[0].preco.toFixed(2) + ")";
-                document.getElementById('postoCaro').innerText = mediasPostos[mediasPostos.length - 1].nome + " (R$ " + mediasPostos[mediasPostos.length - 1].preco.toFixed(2) + ")";
+            // 2. Postos
+            const postos = [...new Set(dados.map(d => d.fornecedor))];
+            const analisePostos = postos.map(p => {
+                const compras = dados.filter(d => d.fornecedor === p);
+                return { nome: p, preco: compras.reduce((a, b) => a + b.valorUnit, 0) / compras.length };
+            }).sort((a,b) => a.preco - b.preco);
+
+            if(analisePostos.length > 0) {
+                document.getElementById('postoBarato').innerText = analisePostos[0].nome + " (R$ " + analisePostos[0].preco.toFixed(2) + ")";
+                document.getElementById('postoCaro').innerText = analisePostos[analisePostos.length - 1].nome + " (R$ " + analisePostos[analisePostos.length - 1].preco.toFixed(2) + ")";
             }
 
-            // 3. Top 5 Fornecedores (Frequência)
-            const contagemPostos = {};
-            dados.forEach(d => { if(d.fornecedor) contagemPostos[d.fornecedor] = (contagemPostos[d.fornecedor] || 0) + 1 });
-            const topPostos = Object.entries(contagemPostos).sort((a,b) => b[1] - a[1]).slice(0, 5);
-            renderList('topFornecedores', topPostos, " Abast.");
+            // 3. Resumo Tipo OP
+            const tipos = [...new Set(dados.map(d => d.tipoOp))];
+            document.getElementById('resumoOp').innerHTML = tipos.map(t => {
+                const sub = dados.filter(d => d.tipoOp === t);
+                const valor = sub.reduce((a, b) => a + b.totalGasto, 0);
+                const km = sub.reduce((a, b) => a + b.kmRodado, 0);
+                const li = sub.reduce((a, b) => a + b.quantidade, 0);
+                const media = li > 0 ? (km/li).toFixed(2) : "0.00";
+                return `<div class="top-item"><span>${t}</span><span class="val">${valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${media} km/l</small></span></div>`;
+            }).join('');
 
-            // 4. Motoristas (Melhores e Piores)
-            const motoristasUnicos = [...new Set(dados.map(d => d.motorista))];
-            const perfMotorista = motoristasUnicos.map(m => {
-                const sub = dados.filter(x => x.motorista === m);
-                const l = sub.reduce((a, b) => a + b.quantidade, 0);
+            // 4. Performance Motoristas
+            const nomesMoto = [...new Set(dados.map(d => d.motorista))];
+            const perf = nomesMoto.map(m => {
+                const sub = dados.filter(d => d.motorista === m);
                 const k = sub.reduce((a, b) => a + b.kmRodado, 0);
+                const l = sub.reduce((a, b) => a + b.quantidade, 0);
                 return { nome: m, media: l > 0 ? k/l : 0 };
             }).filter(x => x.media > 0).sort((a,b) => b.media - a.media);
 
-            renderList('topMotoMelhores', perfMotorista.slice(0,5).map(x => [x.nome, x.media.toFixed(2)]), " KM/L");
-            renderList('topMotoPiores', [...perfMotorista].reverse().slice(0,5).map(x => [x.nome, x.media.toFixed(2)]), " KM/L");
+            const renderTop = (id, data, reverse = false) => {
+                const finalData = reverse ? [...data].reverse().slice(0,5) : data.slice(0,5);
+                document.getElementById(id).innerHTML = finalData.map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)} KM/L</span></div>`).join('');
+            };
+            renderTop('topMotoMelhores', perf);
+            renderTop('topMotoPiores', perf, true);
 
-            // 5. Resumo por Tipo OP (Valor Total e Média)
-            const tiposOp = [...new Set(dados.map(d => d.tipoOp))];
-            document.getElementById('resumoOp').innerHTML = tiposOp.map(op => {
-                const sub = dados.filter(d => d.tipoOp === op);
-                const totalVal = sub.reduce((a, b) => a + b.totalGasto, 0);
-                const l = sub.reduce((a, b) => a + b.quantidade, 0);
-                const k = sub.reduce((a, b) => a + b.kmRodado, 0);
-                const mOp = l > 0 ? (k/l).toFixed(2) : "0.00";
-                return `<div class="top-item"><span>${op}</span><span class="val">${totalVal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${mOp} km/l</small></span></div>`;
-            }).join('');
+            // 5. Fornecedores Frequência
+            const freq = {};
+            dados.forEach(d => freq[d.fornecedor] = (freq[d.fornecedor] || 0) + 1);
+            const topPostos = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0,5);
+            document.getElementById('topFornecedores').innerHTML = topPostos.map(p => `<div class="top-item"><span>${p[0]}</span><span class="val">${p[1]} Abast.</span></div>`).join('');
 
-            // 6. Gráfico
-            renderChart(perfMotorista.slice(0,8).map(x => x.nome), perfMotorista.slice(0,8).map(x => x.media));
+            // Gráfico
+            const ctx = document.getElementById('chartEfic');
+            const topChart = perf.slice(0,8);
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: topChart.map(x => x.nome),
+                    datasets: [{ label: 'KM/L', data: topChart.map(x => x.media), backgroundColor: '#FFD60A' }]
+                },
+                options: { scales: { y: { beginAtZero: false, min: Math.min(...topChart.map(x => x.media)) - 0.2, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-        } catch (e) { document.getElementById('loader').innerText = "Erro ao processar dados."; console.error(e); }
-    }
-
-    function renderList(id, data, sufixo) {
-        document.getElementById(id).innerHTML = data.map(item => 
-            `<div class="top-item"><span>${item[0]}</span><span class="val">${item[1]}${sufixo}</span></div>`
-        ).join('');
-    }
-
-    function renderChart(labels, values) {
-        new Chart(document.getElementById('chartEfic'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'Média KM/L', data: values, backgroundColor: '#FFD60A' }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: false, min: Math.min(...values) - 0.2, grid: { color: 'rgba(255,255,255,0.05)' } }
-                }
-            }
-        });
+        } catch (e) { document.getElementById('loader').innerText = "Erro ao carregar dados."; }
     }
     init();
 </script>
