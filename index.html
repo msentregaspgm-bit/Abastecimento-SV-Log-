@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV LOG - BI DIESEL S-10</title>
+    <title>SV LOG - BI S-10</title>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 12px; }
-        .header { text-align: center; padding: 10px; background: var(--card); border-bottom: 2px solid var(--yellow); border-radius: 8px; margin-bottom: 10px; }
-        h1 { font-size: 16px; margin: 0; color: var(--yellow); }
-        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 10px; margin: 15px 0 5px 0; border-left: 3px solid var(--yellow); padding-left: 8px; }
-        
-        /* Grid de KPIs mais compacta */
-        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 11px; }
+        .header { text-align: center; padding: 8px; background: var(--card); border-bottom: 2px solid var(--yellow); border-radius: 8px; margin-bottom: 10px; }
+        h1 { font-size: 14px; margin: 0; color: var(--yellow); text-transform: uppercase; }
+        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 9px; margin: 12px 0 4px 0; border-left: 3px solid var(--yellow); padding-left: 8px; }
+        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .kpi-card { background: var(--card); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-        .kpi-card small { font-size: 8px; color: #888; display: block; }
-        .kpi-card div { font-size: 14px; font-weight: bold; margin-top: 2px; }
-
-        .top-list { background: var(--card); border-radius: 6px; padding: 5px 10px; margin-bottom: 10px; }
-        .top-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; }
+        .kpi-card small { font-size: 8px; color: #888; display: block; text-transform: uppercase; }
+        .kpi-card div { font-size: 13px; font-weight: bold; margin-top: 2px; }
+        .top-list { background: var(--card); border-radius: 6px; padding: 4px 10px; margin-bottom: 10px; }
+        .top-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .top-item:last-child { border-bottom: none; }
-        .val { font-weight: bold; color: var(--yellow); text-align: right; }
-        
-        #loader { text-align:center; padding:30px; color:var(--yellow); font-size: 14px; }
-        .red-text { color: var(--red) !important; }
-        .green-text { color: var(--green) !important; }
+        .val { font-weight: bold; color: var(--yellow); }
+        #loader { text-align:center; padding:20px; color:var(--yellow); }
+        .red-t { color: var(--red); }
+        .green-t { color: var(--green); }
     </style>
 </head>
 <body>
 
-<div class="header"><h1>SV LOG - PERFORMANCE S-10</h1></div>
-<div id="loader">CARREGANDO...</div>
+<div class="header"><h1>BI PERFORMANCE S-10</h1></div>
+<div id="loader">PROCESSANDO DADOS...</div>
 
 <div id="dashboard" style="display:none">
     
@@ -39,22 +35,22 @@
 
     <div class="section-title">Indicadores de Custo e Performance</div>
     <div class="kpi-grid">
-        <div class="kpi-card"><small>Média Geral (KM/L)</small><div id="mediaGlobal" class="green-text">0.00</div></div>
+        <div class="kpi-card"><small>Média Geral (KM/L)</small><div id="mediaGlobal" class="green-t">0.00</div></div>
         <div class="kpi-card"><small>Custo Médio Litro</small><div id="valorLitroMedio">R$ 0,00</div></div>
-        <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" style="font-size:11px" class="green-text">---</div></div>
-        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:11px" class="red-text">---</div></div>
+        <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" class="green-t" style="font-size:10px">---</div></div>
+        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" class="red-t" style="font-size:10px">---</div></div>
     </div>
 
-    <div class="section-title">Ranking Motoristas - Melhores Médias</div>
+    <div class="section-title">Melhores Motoristas (Top 5)</div>
     <div id="topMelhores" class="top-list"></div>
 
-    <div class="section-title">Ranking Motoristas - Piores Médias</div>
+    <div class="section-title">Piores Motoristas (Top 5)</div>
     <div id="topPiores" class="top-list"></div>
 
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyAZC79jrQ5hvYXa6FxANcxXrUoB10Z0BkDyMEA-eMDZtuSNtrnpcR7o0GfQ5GY9fgqKA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbw-TUOtw6vhBC2gAdwUgdP8MyDs7fXtyaWmtKhEHE9DxvEY2BnxAVhjF3y-7hqw1xQlTA/exec";
 
     async function init() {
         try {
@@ -66,55 +62,51 @@
                 return;
             }
 
-            // 1. KPI MÉDIA GLOBAL (Coluna O)
-            const dadosComMedia = dados.filter(d => d.mediaLinha > 0);
-            const mediaG = dadosComMedia.reduce((a, b) => a + b.mediaLinha, 0) / dadosComMedia.length;
-            document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2);
+            // 1. CUSTO MÉDIO LITRO (Soma Valor Unit / Qtd de Abastecimentos)
+            const somaPrecosUnit = dados.reduce((a, b) => a + b.valorUnit, 0);
+            const custoMedioReal = somaPrecosUnit / dados.length;
+            document.getElementById('valorLitroMedio').innerText = custoMedioReal.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // 2. CUSTO MÉDIO DO LITRO (Soma Valor Unit / Qtd Abastecimentos)
-            const custoM = dados.reduce((a, b) => a + b.valorUnit, 0) / dados.length;
-            document.getElementById('valorLitroMedio').innerText = custoM.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            // 2. MÉDIA GLOBAL KM/L (Soma Médias Coluna O / Qtd Abastecimentos)
+            const dadosMedia = dados.filter(d => d.mediaLinha > 0);
+            const mediaGeral = dadosMedia.reduce((a, b) => a + b.mediaLinha, 0) / dadosMedia.length;
+            document.getElementById('mediaGlobal').innerText = mediaGeral.toFixed(2);
 
-            // 3. RESUMO TIPO OP (Litros e Valor Total)
+            // 3. POSTOS (Média de Preço por Posto)
+            const nomesPostos = [...new Set(dados.map(d => d.fornecedor))];
+            const rankingPostos = nomesPostos.map(p => {
+                const abastecimentosNoPosto = dados.filter(x => x.fornecedor === p);
+                const mediaPrecoPosto = abastecimentosNoPosto.reduce((a, b) => a + b.valorUnit, 0) / abastecimentosNoPosto.length;
+                return { nome: p, media: mediaPrecoPosto };
+            }).sort((a,b) => a.media - b.media);
+
+            document.getElementById('postoBarato').innerText = `${rankingPostos[0].nome} (R$ ${rankingPostos[0].media.toFixed(2)})`;
+            document.getElementById('postoCaro').innerText = `${rankingPostos[rankingPostos.length-1].nome} (R$ ${rankingPostos[rankingPostos.length-1].media.toFixed(2)})`;
+
+            // 4. RESUMO OPERAÇÃO (Total Litros e Valor)
             const tipos = [...new Set(dados.map(d => d.tipoOp))];
             document.getElementById('resumoOp').innerHTML = tipos.map(t => {
                 const sub = dados.filter(d => d.tipoOp === t);
-                const litros = sub.reduce((a, b) => a + b.quantidade, 0);
-                const gasto = sub.reduce((a, b) => a + b.totalGasto, 0);
-                return `<div class="top-item">
-                            <span>${t}</span>
-                            <span class="val">${litros.toFixed(1)} L | ${gasto.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
-                        </div>`;
+                const l = sub.reduce((a, b) => a + b.quantidade, 0);
+                const v = sub.reduce((a, b) => a + b.totalGasto, 0);
+                return `<div class="top-item"><span>${t}</span><span class="val">${l.toFixed(0)}L | ${v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span></div>`;
             }).join('');
 
-            // 4. POSTOS (Média real: Soma dos valores / Qtd abastecimentos no posto)
-            const postos = [...new Set(dados.map(d => d.fornecedor))];
-            const analiseP = postos.map(p => {
-                const d = dados.filter(x => x.fornecedor === p);
-                return { nome: p, media: d.reduce((a,b) => a + b.valorUnit, 0) / d.length };
-            }).sort((a,b) => a.media - b.media);
-
-            document.getElementById('postoBarato').innerText = `${analiseP[0].nome} (R$ ${analiseP[0].media.toFixed(2)})`;
-            document.getElementById('postoCaro').innerText = `${analiseP[analiseP.length-1].nome} (R$ ${analiseP[analiseP.length-1].media.toFixed(2)})`;
-
-            // 5. RANKINGS MOTORISTAS
-            const mot = [...new Set(dadosComMedia.map(d => d.motorista))];
+            // 5. MOTORISTAS
+            const mot = [...new Set(dadosMedia.map(d => d.motorista))];
             const perf = mot.map(m => {
-                const sub = dadosComMedia.filter(x => x.motorista === m);
+                const sub = dadosMedia.filter(x => x.motorista === m);
                 return { nome: m, media: sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length };
             }).sort((a,b) => b.media - a.media);
 
             document.getElementById('topMelhores').innerHTML = perf.slice(0,5).map(x => 
-                `<div class="top-item"><span>${x.nome}</span><span class="val green-text">${x.media.toFixed(2)}</span></div>`).join('');
-            
+                `<div class="top-item"><span>${x.nome}</span><span class="val green-t">${x.media.toFixed(2)}</span></div>`).join('');
             document.getElementById('topPiores').innerHTML = [...perf].reverse().slice(0,5).map(x => 
-                `<div class="top-item"><span>${x.nome}</span><span class="val red-text">${x.media.toFixed(2)}</span></div>`).join('');
+                `<div class="top-item"><span>${x.nome}</span><span class="val red-t">${x.media.toFixed(2)}</span></div>`).join('');
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-        } catch (e) { 
-            document.getElementById('loader').innerText = "Erro na sincronização."; 
-        }
+        } catch (e) { document.getElementById('loader').innerText = "Erro ao processar dados."; }
     }
     init();
 </script>
