@@ -3,49 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SV MASTER BI - DIESEL S-10</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>SV LOG - BI DIESEL S-10</title>
     <style>
         :root { --bg: #000814; --card: #001D3D; --yellow: #FFD60A; --text: #E0E1DD; --green: #25D366; --red: #ff4d4d; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
-        .header { text-align: center; padding: 15px; background: var(--card); border-bottom: 3px solid var(--yellow); border-radius: 10px; margin-bottom: 15px; }
-        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 11px; margin: 20px 0 10px 5px; border-left: 3px solid var(--yellow); padding-left: 10px; }
-        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .kpi-card { background: var(--card); padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .kpi-card small { font-size: 9px; color: #888; text-transform: uppercase; display: block; }
-        .kpi-card div { font-size: 16px; font-weight: bold; margin-top: 4px; }
-        .top-list { background: var(--card); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
-        .top-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; align-items: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 12px; }
+        .header { text-align: center; padding: 10px; background: var(--card); border-bottom: 2px solid var(--yellow); border-radius: 8px; margin-bottom: 10px; }
+        h1 { font-size: 16px; margin: 0; color: var(--yellow); }
+        .section-title { color: var(--yellow); font-weight: bold; text-transform: uppercase; font-size: 10px; margin: 15px 0 5px 0; border-left: 3px solid var(--yellow); padding-left: 8px; }
+        
+        /* Grid de KPIs mais compacta */
+        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .kpi-card { background: var(--card); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .kpi-card small { font-size: 8px; color: #888; display: block; }
+        .kpi-card div { font-size: 14px; font-weight: bold; margin-top: 2px; }
+
+        .top-list { background: var(--card); border-radius: 6px; padding: 5px 10px; margin-bottom: 10px; }
+        .top-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; }
+        .top-item:last-child { border-bottom: none; }
         .val { font-weight: bold; color: var(--yellow); text-align: right; }
-        .chart-box { background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
-        #loader { text-align:center; padding:50px; color:var(--yellow); font-weight:bold; }
+        
+        #loader { text-align:center; padding:30px; color:var(--yellow); font-size: 14px; }
+        .red-text { color: var(--red) !important; }
+        .green-text { color: var(--green) !important; }
     </style>
 </head>
 <body>
 
-<div class="header"><h1>BI DIESEL S-10 (COLUNA O)</h1></div>
-<div id="loader">FILTRANDO DIESEL S-10...</div>
+<div class="header"><h1>SV LOG - PERFORMANCE S-10</h1></div>
+<div id="loader">CARREGANDO...</div>
 
 <div id="dashboard" style="display:none">
-    <div class="section-title">Médias por Operação</div>
+    
+    <div class="section-title">Resumo por Tipo Operação</div>
     <div id="resumoOp" class="top-list"></div>
 
-    <div class="section-title">Indicadores de Performance</div>
+    <div class="section-title">Indicadores de Custo e Performance</div>
     <div class="kpi-grid">
-        <div class="kpi-card"><small>Média Global (S-10)</small><div id="mediaGlobal" style="color:var(--green)">0.00</div></div>
+        <div class="kpi-card"><small>Média Geral (KM/L)</small><div id="mediaGlobal" class="green-text">0.00</div></div>
         <div class="kpi-card"><small>Custo Médio Litro</small><div id="valorLitroMedio">R$ 0,00</div></div>
-        <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" style="font-size:10px; color:var(--green)">---</div></div>
-        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:10px; color:var(--red)">---</div></div>
+        <div class="kpi-card"><small>Posto Mais Barato</small><div id="postoBarato" style="font-size:11px" class="green-text">---</div></div>
+        <div class="kpi-card"><small>Posto Mais Caro</small><div id="postoCaro" style="font-size:11px" class="red-text">---</div></div>
     </div>
 
-    <div class="section-title">Melhores Motoristas (Média Coluna O)</div>
-    <div id="topMotoMelhores" class="top-list"></div>
+    <div class="section-title">Ranking Motoristas - Melhores Médias</div>
+    <div id="topMelhores" class="top-list"></div>
 
-    <div class="chart-box"><canvas id="chartEfic"></canvas></div>
+    <div class="section-title">Ranking Motoristas - Piores Médias</div>
+    <div id="topPiores" class="top-list"></div>
+
 </div>
 
 <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyHQfV1c7Y4VCoD6JUIZj5EGQva-cmvZ0csCqxoXcqjhx5IqxeR8riEjc5bESIeevJlGA/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyAZC79jrQ5hvYXa6FxANcxXrUoB10Z0BkDyMEA-eMDZtuSNtrnpcR7o0GfQ5GY9fgqKA/exec";
 
     async function init() {
         try {
@@ -53,55 +62,59 @@
             const dados = await res.json();
             
             if (dados.length === 0) {
-                document.getElementById('loader').innerText = "Nenhum dado de DIESEL S-10 encontrado.";
+                document.getElementById('loader').innerText = "Sem dados de DIESEL S-10.";
                 return;
             }
 
-            // 1. MÉDIA GLOBAL
-            const mediaGlobal = dados.reduce((a, b) => a + b.mediaLinha, 0) / dados.length;
-            const precoMedio = dados.reduce((a, b) => a + b.valorUnit, 0) / dados.length;
+            // 1. KPI MÉDIA GLOBAL (Coluna O)
+            const dadosComMedia = dados.filter(d => d.mediaLinha > 0);
+            const mediaG = dadosComMedia.reduce((a, b) => a + b.mediaLinha, 0) / dadosComMedia.length;
+            document.getElementById('mediaGlobal').innerText = mediaG.toFixed(2);
 
-            document.getElementById('mediaGlobal').innerText = mediaGlobal.toFixed(2) + " KM/L";
-            document.getElementById('valorLitroMedio').innerText = precoMedio.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            // 2. CUSTO MÉDIO DO LITRO (Soma Valor Unit / Qtd Abastecimentos)
+            const custoM = dados.reduce((a, b) => a + b.valorUnit, 0) / dados.length;
+            document.getElementById('valorLitroMedio').innerText = custoM.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
-            // 2. RESUMO OPERAÇÃO
-            const ops = [...new Set(dados.map(d => d.tipoOp))];
-            document.getElementById('resumoOp').innerHTML = ops.map(op => {
-                const sub = dados.filter(d => d.tipoOp === op);
-                const valorTotal = sub.reduce((a, b) => a + b.totalGasto, 0);
-                const mediaOp = sub.reduce((a, b) => a + b.mediaLinha, 0) / sub.length;
-                return `<div class="top-item"><span>${op}</span><span class="val">${valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<br><small style="color:var(--green)">${mediaOp.toFixed(2)} km/l</small></span></div>`;
+            // 3. RESUMO TIPO OP (Litros e Valor Total)
+            const tipos = [...new Set(dados.map(d => d.tipoOp))];
+            document.getElementById('resumoOp').innerHTML = tipos.map(t => {
+                const sub = dados.filter(d => d.tipoOp === t);
+                const litros = sub.reduce((a, b) => a + b.quantidade, 0);
+                const gasto = sub.reduce((a, b) => a + b.totalGasto, 0);
+                return `<div class="top-item">
+                            <span>${t}</span>
+                            <span class="val">${litros.toFixed(1)} L | ${gasto.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+                        </div>`;
             }).join('');
 
-            // 3. POSTOS
+            // 4. POSTOS (Média real: Soma dos valores / Qtd abastecimentos no posto)
             const postos = [...new Set(dados.map(d => d.fornecedor))];
             const analiseP = postos.map(p => {
                 const d = dados.filter(x => x.fornecedor === p);
-                return { nome: p, preco: d.reduce((a,b) => a + b.valorUnit, 0) / d.length };
-            }).sort((a,b) => a.preco - b.preco);
-            document.getElementById('postoBarato').innerText = analiseP[0].nome + " (R$ " + analiseP[0].preco.toFixed(2) + ")";
-            document.getElementById('postoCaro').innerText = analiseP[analiseP.length-1].nome + " (R$ " + analiseP[analiseP.length-1].preco.toFixed(2) + ")";
+                return { nome: p, media: d.reduce((a,b) => a + b.valorUnit, 0) / d.length };
+            }).sort((a,b) => a.media - b.media);
 
-            // 4. MOTORISTAS
-            const mot = [...new Set(dados.map(d => d.motorista))];
+            document.getElementById('postoBarato').innerText = `${analiseP[0].nome} (R$ ${analiseP[0].media.toFixed(2)})`;
+            document.getElementById('postoCaro').innerText = `${analiseP[analiseP.length-1].nome} (R$ ${analiseP[analiseP.length-1].media.toFixed(2)})`;
+
+            // 5. RANKINGS MOTORISTAS
+            const mot = [...new Set(dadosComMedia.map(d => d.motorista))];
             const perf = mot.map(m => {
-                const sub = dados.filter(x => x.motorista === m);
-                const mMed = sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length;
-                return { nome: m, media: mMed };
+                const sub = dadosComMedia.filter(x => x.motorista === m);
+                return { nome: m, media: sub.reduce((a,b) => a + b.mediaLinha, 0) / sub.length };
             }).sort((a,b) => b.media - a.media);
 
-            document.getElementById('topMotoMelhores').innerHTML = perf.slice(0,5).map(x => `<div class="top-item"><span>${x.nome}</span><span class="val">${x.media.toFixed(2)} KM/L</span></div>`).join('');
-
-            // Gráfico
-            new Chart(document.getElementById('chartEfic'), {
-                type: 'bar',
-                data: { labels: perf.slice(0,8).map(x=>x.nome), datasets: [{ label: 'Média (Coluna O)', data: perf.slice(0,8).map(x=>x.media), backgroundColor: '#FFD60A' }] },
-                options: { scales: { y: { beginAtZero: false, min: Math.min(...perf.map(x=>x.media))*0.9 } } }
-            });
+            document.getElementById('topMelhores').innerHTML = perf.slice(0,5).map(x => 
+                `<div class="top-item"><span>${x.nome}</span><span class="val green-text">${x.media.toFixed(2)}</span></div>`).join('');
+            
+            document.getElementById('topPiores').innerHTML = [...perf].reverse().slice(0,5).map(x => 
+                `<div class="top-item"><span>${x.nome}</span><span class="val red-text">${x.media.toFixed(2)}</span></div>`).join('');
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
-        } catch (e) { document.getElementById('loader').innerText = "Erro ao carregar os dados de Diesel S-10."; }
+        } catch (e) { 
+            document.getElementById('loader').innerText = "Erro na sincronização."; 
+        }
     }
     init();
 </script>
